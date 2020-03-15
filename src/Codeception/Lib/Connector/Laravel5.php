@@ -1,7 +1,8 @@
 <?php
 namespace Codeception\Lib\Connector;
 
-use Codeception\Lib\Connector\Laravel5\ExceptionHandlerDecorator;
+use Codeception\Lib\Connector\Laravel5\ExceptionHandlerDecorator as Laravel5ExceptionHandlerDecorator;
+use Codeception\Lib\Connector\Laravel7\ExceptionHandlerDecorator as Laravel7ExceptionHandlerDecorator;
 use Codeception\Stub;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
@@ -226,7 +227,12 @@ class Laravel5 extends Client
 
         // Replace the Laravel exception handler with our decorated exception handler,
         // so exceptions can be intercepted for the disable_exception_handling functionality.
-        $decorator = new ExceptionHandlerDecorator($this->app['Illuminate\Contracts\Debug\ExceptionHandler']);
+        if (version_compare(Application::VERSION, '7.0.0', '<')) {
+            $decorator = new Laravel5ExceptionHandlerDecorator($this->app['Illuminate\Contracts\Debug\ExceptionHandler']);
+        } else {
+            $decorator = new Laravel7ExceptionHandlerDecorator($this->app['Illuminate\Contracts\Debug\ExceptionHandler']);
+        }
+
         $decorator->exceptionHandlingDisabled($this->exceptionHandlingDisabled);
         $this->app->instance('Illuminate\Contracts\Debug\ExceptionHandler', $decorator);
 
