@@ -17,13 +17,13 @@
 
     "require": {
         "php": ">=5.6.0 <8.0",
-        "codeception/lib-innerbrowser": "dev-master | ^1.0",
-        "codeception/codeception": "4.0.x-dev | ^4.0"
+        "codeception/lib-innerbrowser": "^1.0",
+        "codeception/codeception": "^4.0"
     },
     "require-dev": {
         "codeception/util-robohelpers": "dev-master",
-        "codeception/module-asserts": "dev-master | ^1.0",
-        "codeception/module-rest": "dev-master | ^1.0"
+        "codeception/module-asserts": "^1.0",
+        "codeception/module-rest": "^1.0"
     },
     "autoload":{
         "classmap": ["src/"]
