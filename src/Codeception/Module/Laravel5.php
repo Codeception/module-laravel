@@ -14,6 +14,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Collection;
 use Symfony\Component\Console\Output\OutputInterface;
+use Illuminate\Foundation\Application;
 
 /**
  *
@@ -437,7 +438,7 @@ class Laravel5 extends Framework implements ActiveRecord, PartedModule
             $this->debug($output);
             return $output;
         }
-        
+
         $console->call($command, $parameters, $output);
     }
 
@@ -1164,7 +1165,7 @@ class Laravel5 extends Framework implements ActiveRecord, PartedModule
             $this->fail("Could not create model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
         }
     }
-    
+
     /**
      * Use Laravel's model factory to make a model instance.
      * Can only be used with Laravel 5.1 and later.
@@ -1192,7 +1193,7 @@ class Laravel5 extends Framework implements ActiveRecord, PartedModule
             $this->fail("Could not make model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
         }
     }
-    
+
     /**
      * Use Laravel's model factory to make multiple model instances.
      * Can only be used with Laravel 5.1 and later.
@@ -1236,7 +1237,13 @@ class Laravel5 extends Framework implements ActiveRecord, PartedModule
                 'This functionality relies on Laravel model factories, which were introduced in Laravel 5.1.');
         }
 
-        return factory($model, $name, $times);
+        if (version_compare(Application::VERSION, '7.0.0', '<')) {
+            $factory = factory($model, $name, $times);
+        } else {
+            $factory = factory($model, $times);
+        }
+
+        return $factory;
     }
 
     /**
