@@ -1,6 +1,6 @@
 # Codeception module for Laravel 5 framework
 
-[![Build Status](https://travis-ci.org/Codeception/module-laravel5.svg?branch=master)](https://travis-ci.org/Codeception/module-laravel5)
+![Build Status](https://github.com/Codeception/module-laravel5/workflows/CI/badge.svg)
 
 ## Installation
 
