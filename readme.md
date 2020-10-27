@@ -10,4 +10,4 @@ composer require --dev "codeception/module-laravel5"
 
 ## Documentation
 
-<a href="documentation.md">Look at documentation.md file</a>
+<a href="https://codeception.com/docs/modules/Laravel5">Module documentation</a>

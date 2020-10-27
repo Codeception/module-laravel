@@ -20,7 +20,6 @@
         "codeception/codeception": "^4.0"
     },
     "require-dev": {
-        "codeception/util-robohelpers": "dev-master",
         "codeception/module-asserts": "^1.0",
         "codeception/module-rest": "^1.0"
     },
