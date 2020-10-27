@@ -26,7 +26,7 @@ jobs:
       with:
         repository: codeception/codeception-laravel5-sample
         path: framework-tests
-        ref: codeception-3.0
+        ref: codeception-4.1
 
     - name: Install Laravel Sample
       run: |
