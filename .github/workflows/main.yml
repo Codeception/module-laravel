@@ -30,6 +30,7 @@ jobs:
 
     - name: Install Laravel Sample
       run: |
+        composer remove --no-update --dev codeception/module-laravel5
         composer update --no-dev --prefer-dist --no-interaction
         cp .env.testing .env
         touch storage/testing.sqlite
