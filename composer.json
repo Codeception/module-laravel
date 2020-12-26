@@ -1,7 +1,7 @@
 {
-    "name":"codeception/module-laravel5",
-    "description":"Codeception module for Laravel 5 framework",
-    "keywords":["codeception", "laravel5"],
+    "name":"codeception/module-laravel",
+    "description":"Codeception module for Laravel framework",
+    "keywords":["codeception", "laravel"],
     "homepage":"http://codeception.com/",
     "type":"library",
     "license":"MIT",
