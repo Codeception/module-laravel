@@ -1,23 +1,31 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Codeception\Lib\Connector;
 
-use Codeception\Lib\Connector\Laravel5\ExceptionHandlerDecorator as Laravel5ExceptionHandlerDecorator;
-use Codeception\Lib\Connector\Laravel7\ExceptionHandlerDecorator as Laravel7ExceptionHandlerDecorator;
+use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
+use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
 use Codeception\Stub;
+use Exception;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Bootstrap\RegisterProviders;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelBrowser as Client;
+use Symfony\Component\HttpKernel\Kernel as SymfonyKernel;
+use function class_alias;
 
-//Alias for Symfony < 4.3
-if (!class_exists('Symfony\Component\HttpKernel\HttpKernelBrowser') && class_exists('Symfony\Component\HttpKernel\Client')) {
+if (SymfonyKernel::VERSION_ID < 40300) {
     class_alias('Symfony\Component\HttpKernel\Client', 'Symfony\Component\HttpKernel\HttpKernelBrowser');
 }
 
-class Laravel5 extends Client
+class Laravel extends Client
 {
     /**
      * @var array
@@ -88,6 +96,7 @@ class Laravel5 extends Client
      * Constructor.
      *
      * @param \Codeception\Module\Laravel5 $module
+     * @throws Exception
      */
     public function __construct($module)
     {
@@ -117,8 +126,9 @@ class Laravel5 extends Client
      *
      * @param SymfonyRequest $request
      * @return Response
+     * @throws Exception
      */
-    protected function doRequest($request)
+    protected function doRequest($request): Response
     {
         if (!$this->firstRequest) {
             $this->initialize($request);
@@ -132,7 +142,7 @@ class Laravel5 extends Client
 
         $request = Request::createFromBase($request);
         $response = $this->kernel->handle($request);
-        $this->app->make('Illuminate\Contracts\Http\Kernel')->terminate($request, $response);
+        $this->app->make(Kernel::class)->terminate($request, $response);
 
         return $response;
     }
@@ -201,14 +211,14 @@ class Laravel5 extends Client
 
         // Reset the old database after all the service providers are registered.
         if ($this->oldDb) {
-            $this->app['events']->listen('bootstrapped: Illuminate\Foundation\Bootstrap\RegisterProviders', function () {
+            $this->app['events']->listen('bootstrapped: ' . RegisterProviders::class, function () {
                 $this->app->singleton('db', function () {
                     return $this->oldDb;
                 });
             });
         }
 
-        $this->app->make('Illuminate\Contracts\Http\Kernel')->bootstrap();
+        $this->app->make(Kernel::class)->bootstrap();
 
         // Record all triggered events by adding a wildcard event listener
         // Since Laravel 5.4 wildcard event handlers receive the event name as the first argument,
@@ -228,13 +238,13 @@ class Laravel5 extends Client
         // Replace the Laravel exception handler with our decorated exception handler,
         // so exceptions can be intercepted for the disable_exception_handling functionality.
         if (version_compare(Application::VERSION, '7.0.0', '<')) {
-            $decorator = new Laravel5ExceptionHandlerDecorator($this->app['Illuminate\Contracts\Debug\ExceptionHandler']);
+            $decorator = new Laravel6ExceptionHandlerDecorator($this->app[ExceptionHandler::class]);
         } else {
-            $decorator = new Laravel7ExceptionHandlerDecorator($this->app['Illuminate\Contracts\Debug\ExceptionHandler']);
+            $decorator = new LaravelExceptionHandlerDecorator($this->app[ExceptionHandler::class]);
         }
 
         $decorator->exceptionHandlingDisabled($this->exceptionHandlingDisabled);
-        $this->app->instance('Illuminate\Contracts\Debug\ExceptionHandler', $decorator);
+        $this->app->instance(ExceptionHandler::class, $decorator);
 
         if ($this->module->config['disable_middleware'] || $this->middlewareDisabled) {
             $this->app->instance('middleware.disable', true);
@@ -253,10 +263,10 @@ class Laravel5 extends Client
 
     /**
      * Boot the Laravel application object.
+     *
      * @return Application
-     * @throws ModuleConfig
      */
-    private function loadApplication()
+    private function loadApplication(): Application
     {
         $app = require $this->module->config['bootstrap_file'];
         $app->loadEnvironmentFrom($this->module->config['environment_file']);
@@ -267,8 +277,10 @@ class Laravel5 extends Client
 
     /**
      * Replace the Laravel event dispatcher with a mock.
+     *
+     * @throws Exception
      */
-    private function mockEventDispatcher()
+    private function mockEventDispatcher(): void
     {
         // Even if events are disabled we still want to record the triggered events.
         // But by mocking the event dispatcher the wildcard listener registered in the initialize method is removed.
@@ -283,7 +295,7 @@ class Laravel5 extends Client
         // the 'fire' method was renamed to 'dispatch'. This code determines the correct method to mock.
         $method = method_exists($this->app['events'], 'dispatch') ? 'dispatch' : 'fire';
 
-        $mock = Stub::makeEmpty('Illuminate\Contracts\Events\Dispatcher', [
+        $mock = Stub::makeEmpty(Dispatcher::class, [
            $method => $callback
         ]);
 
@@ -293,10 +305,10 @@ class Laravel5 extends Client
     /**
      * Normalize events to class names.
      *
-     * @param $event
+     * @param object|string $event
      * @return string
      */
-    private function normalizeEvent($event)
+    private function normalizeEvent($event): string
     {
         if (is_object($event)) {
             $event = get_class($event);
@@ -322,7 +334,7 @@ class Laravel5 extends Client
      * @param $event
      * @return bool
      */
-    public function eventTriggered($event)
+    public function eventTriggered($event): bool
     {
         $event = $this->normalizeEvent($event);
 
@@ -338,25 +350,27 @@ class Laravel5 extends Client
     /**
      * Disable Laravel exception handling.
      */
-    public function disableExceptionHandling()
+    public function disableExceptionHandling(): void
     {
         $this->exceptionHandlingDisabled = true;
-        $this->app['Illuminate\Contracts\Debug\ExceptionHandler']->exceptionHandlingDisabled(true);
+        $this->app[ExceptionHandler::class]->exceptionHandlingDisabled(true);
     }
 
     /**
      * Enable Laravel exception handling.
      */
-    public function enableExceptionHandling()
+    public function enableExceptionHandling(): void
     {
         $this->exceptionHandlingDisabled = false;
-        $this->app['Illuminate\Contracts\Debug\ExceptionHandler']->exceptionHandlingDisabled(false);
+        $this->app[ExceptionHandler::class]->exceptionHandlingDisabled(false);
     }
 
     /**
      * Disable events.
+     *
+     * @throws Exception
      */
-    public function disableEvents()
+    public function disableEvents(): void
     {
         $this->eventsDisabled = true;
         $this->mockEventDispatcher();
@@ -365,7 +379,7 @@ class Laravel5 extends Client
     /**
      * Disable model events.
      */
-    public function disableModelEvents()
+    public function disableModelEvents(): void
     {
         $this->modelEventsDisabled = true;
         Model::unsetEventDispatcher();
@@ -374,7 +388,7 @@ class Laravel5 extends Client
     /*
      * Disable middleware.
      */
-    public function disableMiddleware()
+    public function disableMiddleware(): void
     {
         $this->middlewareDisabled = true;
         $this->app->instance('middleware.disable', true);
@@ -383,7 +397,7 @@ class Laravel5 extends Client
     /**
      * Apply the registered application handlers.
      */
-    private function applyApplicationHandlers()
+    private function applyApplicationHandlers(): void
     {
         foreach ($this->applicationHandlers as $handler) {
             call_user_func($handler, $this->app);
@@ -393,7 +407,7 @@ class Laravel5 extends Client
     /**
      * Apply the registered Laravel service container bindings.
      */
-    private function applyBindings()
+    private function applyBindings(): void
     {
         foreach ($this->bindings as $abstract => $binding) {
             list($concrete, $shared) = $binding;
@@ -405,7 +419,7 @@ class Laravel5 extends Client
     /**
      * Apply the registered Laravel service container contextual bindings.
      */
-    private function applyContextualBindings()
+    private function applyContextualBindings(): void
     {
         foreach ($this->contextualBindings as $concrete => $bindings) {
             foreach ($bindings as $abstract => $implementation) {
@@ -417,7 +431,7 @@ class Laravel5 extends Client
     /**
      * Apply the registered Laravel service container instance bindings.
      */
-    private function applyInstances()
+    private function applyInstances(): void
     {
         foreach ($this->instances as $abstract => $instance) {
             $this->app->instance($abstract, $instance);
@@ -436,7 +450,7 @@ class Laravel5 extends Client
      * @param $concrete
      * @param bool $shared
      */
-    public function haveBinding($abstract, $concrete, $shared = false)
+    public function haveBinding($abstract, $concrete, $shared = false): void
     {
         $this->bindings[$abstract] = [$concrete, $shared];
     }
@@ -449,7 +463,7 @@ class Laravel5 extends Client
      * @param $abstract
      * @param $implementation
      */
-    public function haveContextualBinding($concrete, $abstract, $implementation)
+    public function haveContextualBinding($concrete, $abstract, $implementation): void
     {
         if (! isset($this->contextualBindings[$concrete])) {
             $this->contextualBindings[$concrete] = [];
@@ -465,7 +479,7 @@ class Laravel5 extends Client
      * @param $abstract
      * @param $instance
      */
-    public function haveInstance($abstract, $instance)
+    public function haveInstance($abstract, $instance): void
     {
         $this->instances[$abstract] = $instance;
     }
@@ -476,7 +490,7 @@ class Laravel5 extends Client
      *
      * @param $handler
      */
-    public function haveApplicationHandler($handler)
+    public function haveApplicationHandler($handler): void
     {
         $this->applicationHandlers[] = $handler;
     }
@@ -484,7 +498,7 @@ class Laravel5 extends Client
     /**
      * Clear the registered application handlers.
      */
-    public function clearApplicationHandlers()
+    public function clearApplicationHandlers(): void
     {
         $this->applicationHandlers = [];
     }
