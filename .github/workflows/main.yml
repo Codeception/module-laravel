@@ -8,43 +8,50 @@ jobs:
 
     strategy:
       matrix:
-        php: [5.6, 7.0, 7.1, 7.4, 8.0]
+        php: [7.3, 7.4, 8.0]
+        laravel: [8]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: zip, pdo, sqlite
-        coverage: none
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          extensions: ctype, iconv, intl, json, mbstring, pdo, pdo_sqlite
+          coverage: none
 
-    - name: Checkout Laravel Sample
-      uses: actions/checkout@v2
-      with:
-        repository: codeception/codeception-laravel5-sample
-        path: framework-tests
-        ref: codeception-4.1
+      - name: Checkout Laravel 8 Sample
+        if: matrix.laravel == 8
+        uses: actions/checkout@v2
+        with:
+          repository: codeception/laravel-module-tests
+          submodules: recursive
+          ref: main
 
-    - name: Install Laravel Sample
-      run: |
-        composer remove --no-update --dev codeception/module-laravel5
-        composer update --no-dev --prefer-dist --no-interaction
-        cp .env.testing .env
-        touch storage/testing.sqlite
-        php artisan migrate --env=testing --database=sqlite_testing --force
-        php artisan config:clear
-      working-directory: framework-tests
+      - name: Validate composer.json and composer.lock
+        run: composer validate
 
-    - name: Validate composer.json and composer.lock
-      run: composer validate
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction --no-suggest
+      - name: Cache composer dependencies
+        uses: actions/cache@v2.1.3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-composer-
 
-    - name: Run test suite
-      run: |
-        php vendor/bin/codecept build -c framework-tests
-        php vendor/bin/codecept run functional -c framework-tests
+      - name: Install Laravel Sample
+        run: composer update --no-progress
+
+      - name: Prepare the test environment and run test suite
+        run: |
+          cp .env.testing .env
+          php artisan config:cache
+          touch database/database.sqlite
+          php artisan migrate --seed --env=testing --force
+          php vendor/bin/codecept run Functional
