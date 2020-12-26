@@ -3,7 +3,7 @@ namespace Codeception\Module;
 
 use Codeception\Exception\ModuleConfigException;
 use Codeception\Exception\ModuleException;
-use Codeception\Lib\Connector\Laravel5 as LaravelConnector;
+use Codeception\Lib\Connector\Laravel as LaravelConnector;
 use Codeception\Lib\Framework;
 use Codeception\Lib\Interfaces\ActiveRecord;
 use Codeception\Lib\Interfaces\PartedModule;
@@ -12,9 +12,9 @@ use Codeception\Subscriber\ErrorHandler;
 use Codeception\Util\ReflectionHelper;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Collection;
 use Symfony\Component\Console\Output\OutputInterface;
-use Illuminate\Foundation\Application;
 
 /**
  *
