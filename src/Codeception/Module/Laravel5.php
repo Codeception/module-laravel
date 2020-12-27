@@ -72,13 +72,16 @@ use Symfony\Component\Console\Output\OutputInterface;
  *
  * ## Parts
  *
- * * ORM - only include the database methods of this module:
+ * * `ORM`: Only include the database methods of this module:
  *     * have
  *     * haveMultiple
  *     * haveRecord
  *     * grabRecord
  *     * seeRecord
  *     * dontSeeRecord
+ *
+ * See [WebDriver module](https://codeception.com/docs/modules/WebDriver#Loading-Parts-from-other-Modules)
+ * for general information on how to load parts of a framework module.
  *
  * ## Acceptance tests
  *
