@@ -536,7 +536,10 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
         $this->getRouteByAction($action); // Fails if route does not exists
         $currentRoute = $this->app->request->route();
         $currentAction = $currentRoute ? $currentRoute->getActionName() : '';
-        $currentAction = ltrim(str_replace($this->getRootControllerNamespace(), "", $currentAction), '\\');
+        $currentAction = ltrim(
+            str_replace( (string)$this->getRootControllerNamespace(), '', $currentAction),
+            '\\'
+        );
 
         if ($currentAction != $action) {
             $this->fail("Current action is \"$currentAction\"");
