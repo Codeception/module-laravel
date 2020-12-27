@@ -122,7 +122,7 @@ use function is_array;
  *             environment_file: .env.testing
  * ```
  */
-class Laravel5 extends Framework implements ActiveRecord, PartedModule
+class Laravel extends Framework implements ActiveRecord, PartedModule
 {
     /**
      * @var Application
@@ -591,10 +591,10 @@ class Laravel5 extends Framework implements ActiveRecord, PartedModule
     /**
      * Get the root controller namespace for the application.
      *
-     * @return string
+     * @return string|null
      * @throws ReflectionException
      */
-    protected function getRootControllerNamespace(): string
+    protected function getRootControllerNamespace(): ?string
     {
         $urlGenerator = $this->app['url'];
         $reflection = new ReflectionClass($urlGenerator);
@@ -723,7 +723,7 @@ class Laravel5 extends Framework implements ActiveRecord, PartedModule
      * @param string $key
      * @param string|null $expectedErrorMessage
      */
-    public function seeFormErrorMessage(string $key, $expectedErrorMessage = null)
+    public function seeFormErrorMessage(string $key, $expectedErrorMessage = null): void
     {
         $viewErrorBag = $this->app['view']->shared('errors');
 
