@@ -53,7 +53,7 @@ class Laravel extends Client
     private $app;
 
     /**
-     * @var \Codeception\Module\Laravel5
+     * @var \Codeception\Module\Laravel
      */
     private $module;
 
@@ -95,7 +95,7 @@ class Laravel extends Client
     /**
      * Constructor.
      *
-     * @param \Codeception\Module\Laravel5 $module
+     * @param \Codeception\Module\Laravel $module
      * @throws Exception
      */
     public function __construct($module)
