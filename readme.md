@@ -22,6 +22,10 @@ composer require "codeception/module-laravel" --dev
 
 See [the module documentation](https://codeception.com/docs/modules/Laravel5).
 
+### How to Contribute
+
+See [the contribution guide](/CONTRIBUTING.md).
+
 ## License
 
 `Codeception Module Laravel` is open-sourced software licensed under the [MIT](/LICENSE) License.
