@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Collection;
 use Illuminate\Support\ViewErrorBag;
 use ReflectionClass;
@@ -462,14 +463,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * ```
      *
      * @param string $routeName
-     * @param array $params
+     * @param mixed $params
      */
-    public function amOnRoute(string $routeName, array $params = []): void
+    public function amOnRoute(string $routeName, $params = []): void
     {
         $route = $this->getRouteByName($routeName);
 
         $absolute = !is_null($route->domain());
-        $url = $this->app['url']->route($routeName, $params, $absolute);
+        /** @var UrlGenerator $urlGenerator */
+        $urlGenerator = $this->app['url'];
+        $url = $urlGenerator->route($routeName, $params, $absolute);
         $this->amOnPage($url);
     }
 
@@ -562,7 +565,10 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      */
     protected function getRouteByName(string $routeName)
     {
-        if (!$route = $this->app['routes']->getByName($routeName)) {
+        /** @var Router $router */
+        $router = $this->app['router'];
+        $routes = $router->getRoutes();
+        if (!$route = $routes->getByName($routeName)) {
             $this->fail("Route with name '$routeName' does not exist");
         }
 
