@@ -1165,17 +1165,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     }
 
     /**
-     * Use Laravel's model factory to create multiple models.
-     * Can only be used with Laravel 5.1 and later.
+     * Use Laravel model factory to create multiple models.
      *
      * ``` php
      * <?php
-     * $I->haveMultiple('App\User', 10);
-     * $I->haveMultiple('App\User', 10, ['name' => 'John Doe']);
-     * $I->haveMultiple('App\User', 10, [], 'admin');
+     * $I->haveMultiple('App\Models\User', 10);
+     * $I->haveMultiple('App\Models\User', 10, ['name' => 'John Doe']);
+     * $I->haveMultiple('App\Models\User', 10, [], 'admin');
      * ```
      *
-     * @see http://laravel.com/docs/5.1/testing#model-factories
+     * @see https://laravel.com/docs/6.x/database-testing#using-factories
      * @param string $model
      * @param int $times
      * @param array $attributes
@@ -1259,7 +1258,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
             return factory($model, $name, $times);
         }
 
-        return $model::factory();
+        return $model::factory()->count($times);
     }
 
     /**
