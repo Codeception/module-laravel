@@ -1132,17 +1132,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     }
 
     /**
-     * Use Laravel's model factory to create a model.
-     * Can only be used with Laravel 5.1 and later.
+     * Use Laravel model factory to create a model.
      *
      * ``` php
      * <?php
-     * $I->have('App\User');
-     * $I->have('App\User', ['name' => 'John Doe']);
-     * $I->have('App\User', [], 'admin');
+     * $I->have('App\Models\User');
+     * $I->have('App\Models\User', ['name' => 'John Doe']);
+     * $I->have('App\Models\User', [], 'admin');
      * ```
      *
-     * @see http://laravel.com/docs/5.1/testing#model-factories
+     * @see https://laravel.com/docs/6.x/database-testing#using-factories
      * @param string $model
      * @param array $attributes
      * @param string $name
@@ -1152,16 +1151,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     public function have(string $model, array $attributes = [], string $name = 'default')
     {
         try {
-            $result = $this->modelFactory($model, $name)->create($attributes);
+            $model = $this->modelFactory($model, $name)->create($attributes);
 
-            // Since Laravel 5.4 the model factory returns a collection instead of a single object
-            if ($result instanceof Collection) {
-                $result = $result[0];
+            // In Laravel 6 the model factory returns a collection instead of a single object
+            if ($model instanceof Collection) {
+                $model = $model[0];
             }
 
-            return $result;
+            return $model;
         } catch (Exception $e) {
-            $this->fail("Could not create model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
+            $this->fail('Could not create model: \n\n' . get_class($e) . '\n\n' . $e->getMessage());
         }
     }
 
@@ -1252,23 +1251,15 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * @param string $model
      * @param string $name
      * @param int $times
-     * @return FactoryBuilder
-     * @throws ModuleException
+     * @return FactoryBuilder|\Illuminate\Database\Eloquent\Factories\Factory
      */
-    protected function modelFactory(string $model, string $name, $times = 1): FactoryBuilder
+    protected function modelFactory(string $model, string $name, $times = 1)
     {
-        if (! function_exists('factory')) {
-            throw new ModuleException($this, 'The factory() method does not exist. ' .
-                'This functionality relies on Laravel model factories, which were introduced in Laravel 5.1.');
-        }
-
         if (version_compare(Application::VERSION, '7.0.0', '<')) {
-            $factory = factory($model, $name, $times);
-        } else {
-            $factory = factory($model, $times);
+            return factory($model, $name, $times);
         }
 
-        return $factory;
+        return $model::factory();
     }
 
     /**
