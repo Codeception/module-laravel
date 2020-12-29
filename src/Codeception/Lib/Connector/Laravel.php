@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Lib\Connector;
 
+use Closure;
 use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
 use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
 use Codeception\Stub;
@@ -406,11 +407,11 @@ class Laravel extends Client
      * Register a Laravel service container binding that should be applied
      * after initializing the Laravel Application object.
      *
-     * @param $abstract
-     * @param $concrete
+     * @param string $abstract
+     * @param Closure|string|null $concrete
      * @param bool $shared
      */
-    public function haveBinding($abstract, $concrete, $shared = false): void
+    public function haveBinding(string $abstract, $concrete, bool $shared = false): void
     {
         $this->bindings[$abstract] = [$concrete, $shared];
     }
@@ -419,11 +420,11 @@ class Laravel extends Client
      * Register a Laravel service container contextual binding that should be applied
      * after initializing the Laravel Application object.
      *
-     * @param $concrete
-     * @param $abstract
-     * @param $implementation
+     * @param string $concrete
+     * @param string $abstract
+     * @param Closure|string $implementation
      */
-    public function haveContextualBinding($concrete, $abstract, $implementation): void
+    public function haveContextualBinding(string $concrete, string $abstract, $implementation): void
     {
         if (! isset($this->contextualBindings[$concrete])) {
             $this->contextualBindings[$concrete] = [];
@@ -436,10 +437,10 @@ class Laravel extends Client
      * Register a Laravel service container instance binding that should be applied
      * after initializing the Laravel Application object.
      *
-     * @param $abstract
-     * @param $instance
+     * @param string $abstract
+     * @param mixed $instance
      */
-    public function haveInstance($abstract, $instance): void
+    public function haveInstance(string $abstract, $instance): void
     {
         $this->instances[$abstract] = $instance;
     }
@@ -448,9 +449,9 @@ class Laravel extends Client
      * Register a handler than can be used to modify the Laravel application object after it is initialized.
      * The Laravel application object will be passed as an argument to the handler.
      *
-     * @param $handler
+     * @param callable $handler
      */
-    public function haveApplicationHandler($handler): void
+    public function haveApplicationHandler(callable $handler): void
     {
         $this->applicationHandlers[] = $handler;
     }

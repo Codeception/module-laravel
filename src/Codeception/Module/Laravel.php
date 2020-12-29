@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module;
 
+use Closure;
 use Codeception\Configuration;
 use Codeception\Exception\ModuleConfigException;
 use Codeception\Exception\ModuleException;
@@ -17,15 +18,21 @@ use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Factory as AuthContract;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Contracts\Session\Session;
+use Illuminate\Contracts\View\Factory as ViewContract;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Eloquent\Factory;
 use Illuminate\Database\Eloquent\FactoryBuilder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Collection;
+use Illuminate\Support\ViewErrorBag;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
@@ -134,13 +141,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      */
     public $config = [];
 
-    /**
-     * Constructor.
-     *
-     * @param ModuleContainer $container
-     * @param array|null $config
-     */
-    public function __construct(ModuleContainer $container, $config = null)
+    public function __construct(ModuleContainer $container, ?array $config = null)
     {
         $this->config = array_merge(
             [
@@ -357,7 +358,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * $I->disableEvents();
      * ```
      */
-    public function disableEvents()
+    public function disableEvents(): void
     {
         $this->client->disableEvents();
     }
@@ -370,7 +371,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * $I->disableModelEvents();
      * ```
      */
-    public function disableModelEvents()
+    public function disableModelEvents(): void
     {
         $this->client->disableModelEvents();
     }
@@ -382,22 +383,19 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * <?php
      * $I->seeEventTriggered('App\MyEvent');
      * $I->seeEventTriggered(new App\Events\MyEvent());
-     * $I->seeEventTriggered('App\MyEvent', 'App\MyOtherEvent');
      * $I->seeEventTriggered(['App\MyEvent', 'App\MyOtherEvent']);
      * ```
-     * @param object|string|array $events
+     * @param string|object|string[] $expected
      */
-    public function seeEventTriggered($events): void
+    public function seeEventTriggered($expected): void
     {
-        $events = is_array($events) ? $events : func_get_args();
+        $expected = is_array($expected) ? $expected : [$expected];
 
-        foreach ($events as $event) {
-            if (!$this->client->eventTriggered($event)) {
-                if (is_object($event)) {
-                    $event = get_class($event);
-                }
+        foreach ($expected as $expectedEvent) {
+            if (! $this->client->eventTriggered($expectedEvent)) {
+                $expectedEvent = is_object($expectedEvent) ? get_class($expectedEvent) : $expectedEvent;
 
-                $this->fail("The '$event' event did not trigger");
+                $this->fail("The '$expectedEvent' event did not trigger");
             }
         }
     }
@@ -409,22 +407,20 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * <?php
      * $I->dontSeeEventTriggered('App\MyEvent');
      * $I->dontSeeEventTriggered(new App\Events\MyEvent());
-     * $I->dontSeeEventTriggered('App\MyEvent', 'App\MyOtherEvent');
      * $I->dontSeeEventTriggered(['App\MyEvent', 'App\MyOtherEvent']);
      * ```
-     * @param object|string|array $events
+     * @param string|object|string[] $expected
      */
-    public function dontSeeEventTriggered($events)
+    public function dontSeeEventTriggered($expected): void
     {
-        $events = is_array($events) ? $events : func_get_args();
+        $expected = is_array($expected) ? $expected : [$expected];
 
-        foreach ($events as $event) {
-            if ($this->client->eventTriggered($event)) {
-                if (is_object($event)) {
-                    $event = get_class($event);
-                }
+        foreach ($expected as $expectedEvent) {
+            $triggered = $this->client->eventTriggered($expectedEvent);
+            if ($triggered) {
+                $expectedEvent = is_object($expectedEvent) ? get_class($expectedEvent) : $expectedEvent;
 
-                $this->fail("The '$event' event triggered");
+                $this->fail("The '$expectedEvent' event triggered");
             }
         }
     }
@@ -490,7 +486,9 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     {
         $this->getRouteByName($routeName); // Fails if route does not exists
 
-        $currentRoute = $this->app->request->route();
+        /** @var Request $request */
+        $request = $this->app->request;
+        $currentRoute = $request->route();
         $currentRouteName = $currentRoute ? $currentRoute->getName() : '';
 
         if ($currentRouteName != $routeName) {
@@ -506,17 +504,23 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
+     * // Laravel 6 or 7:
      * $I->amOnAction('PostsController@index');
+     *
+     * // Laravel 8+:
+     * $I->amOnAction(PostsController::class . '@index');
      * ```
      *
      * @param string $action
-     * @param array $params
+     * @param mixed $parameters
      */
-    public function amOnAction(string $action, array $params = []): void
+    public function amOnAction(string $action, $parameters = []): void
     {
         $route = $this->getRouteByAction($action);
         $absolute = !is_null($route->domain());
-        $url = $this->app['url']->action($action, $params, $absolute);
+        /** @var UrlGenerator $urlGenerator */
+        $urlGenerator = $this->app['url'];
+        $url = $urlGenerator->action($action, $parameters, $absolute);
 
         $this->amOnPage($url);
     }
@@ -526,7 +530,11 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
+     * // Laravel 6 or 7:
      * $I->seeCurrentActionIs('PostsController@index');
+     *
+     * // Laravel 8+:
+     * $I->seeCurrentActionIs(PostsController::class . '@index');
      * ```
      *
      * @param string $action
@@ -534,7 +542,9 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     public function seeCurrentActionIs(string $action): void
     {
         $this->getRouteByAction($action); // Fails if route does not exists
-        $currentRoute = $this->app->request->route();
+        /** @var Request $request */
+        $request = $this->app->request;
+        $currentRoute = $request->route();
         $currentAction = $currentRoute ? $currentRoute->getActionName() : '';
         $currentAction = ltrim(
             str_replace( (string)$this->getRootControllerNamespace(), '', $currentAction),
@@ -627,12 +637,15 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
             return;
         }
 
-        if (! $this->app['session']->has($key)) {
+        /** @var Session $session */
+        $session = $this->app['session'];
+
+        if (!$session->has($key)) {
             $this->fail("No session variable with key '$key'");
         }
 
         if (! is_null($value)) {
-            $this->assertEquals($value, $this->app['session']->get($key));
+            $this->assertEquals($value, $session->get($key));
         }
     }
 
@@ -668,9 +681,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      */
     public function seeFormHasErrors(): void
     {
-        $viewErrorBag = $this->app->make('view')->shared('errors');
+        /** @var ViewContract $view */
+        $view = $this->app->make('view');
+        /** @var ViewErrorBag $viewErrorBag */
+        $viewErrorBag = $view->shared('errors');
 
-        $this->assertGreaterThan(0, count($viewErrorBag), 'Expecting that the form has errors, but there were none!');
+        $this->assertGreaterThan(
+            0,
+            $viewErrorBag->count(),
+            'Expecting that the form has errors, but there were none!'
+        );
     }
 
     /**
@@ -683,29 +703,52 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      */
     public function dontSeeFormErrors(): void
     {
-        $viewErrorBag = $this->app->make('view')->shared('errors');
+        /** @var ViewContract $view */
+        $view = $this->app->make('view');
+        /** @var ViewErrorBag $viewErrorBag */
+        $viewErrorBag = $view->shared('errors');
 
-        $this->assertEquals(0, count($viewErrorBag), 'Expecting that the form does not have errors, but there were!');
+        $this->assertEquals(
+            0,
+            $viewErrorBag->count(),
+            'Expecting that the form does not have errors, but there were!'
+        );
     }
 
     /**
-     * Assert that specific form error messages are set in the view.
+     * Verifies that multiple fields on a form have errors.
      *
-     * This method calls `seeFormErrorMessage` for each entry in the `$bindings` array.
+     * This method will validate that the expected error message
+     * is contained in the actual error message, that is,
+     * you can specify either the entire error message or just a part of it:
      *
      * ``` php
      * <?php
      * $I->seeFormErrorMessages([
-     *     'username' => 'Invalid Username',
-     *     'password' => null,
+     *     'address'   => 'The address is too long',
+     *     'telephone' => 'too short' // the full error message is 'The telephone is too short'
      * ]);
      * ```
-     * @param array $bindings
+     *
+     * If you don't want to specify the error message for some fields,
+     * you can pass `null` as value instead of the message string.
+     * If that is the case, it will be validated that
+     * that field has at least one error of any type:
+     *
+     * ``` php
+     * <?php
+     * $I->seeFormErrorMessages([
+     *     'telephone' => 'too short',
+     *     'address'   => null
+     * ]);
+     * ```
+     *
+     * @param array $expectedErrors
      */
-    public function seeFormErrorMessages(array $bindings): void
+    public function seeFormErrorMessages(array $expectedErrors): void
     {
-        foreach ($bindings as $key => $value) {
-            $this->seeFormErrorMessage($key, $value);
+        foreach ($expectedErrors as $field => $message) {
+            $this->seeFormErrorMessage($field, $message);
         }
     }
 
@@ -723,19 +766,22 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * $I->seeFormErrorMessage('username');
      * $I->seeFormErrorMessage('username', 'Invalid Username');
      * ```
-     * @param string $key
-     * @param string|null $expectedErrorMessage
+     * @param string $field
+     * @param string|null $errorMessage
      */
-    public function seeFormErrorMessage(string $key, $expectedErrorMessage = null): void
+    public function seeFormErrorMessage(string $field, $errorMessage = null): void
     {
-        $viewErrorBag = $this->app['view']->shared('errors');
+        /** @var ViewContract $view */
+        $view =  $this->app['view'];
+        /** @var ViewErrorBag $viewErrorBag */
+        $viewErrorBag = $view->shared('errors');
 
-        if (!($viewErrorBag->has($key))) {
-            $this->fail("No form error message for key '$key'\n");
+        if (!($viewErrorBag->has($field))) {
+            $this->fail("No form error message for key '$field'\n");
         }
 
-        if (! is_null($expectedErrorMessage)) {
-            $this->assertStringContainsString($expectedErrorMessage, $viewErrorBag->first($key));
+        if (! is_null($errorMessage)) {
+            $this->assertStringContainsString($errorMessage, $viewErrorBag->first($field));
         }
     }
 
@@ -755,20 +801,14 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * // can be verified with $I->seeAuthentication();
      * ```
      * @param Authenticatable|array $user
-     * @param  string|null $driver The authentication driver for Laravel <= 5.1.*, guard name for Laravel >= 5.2
-     * @return void
+     * @param string|null $guardName The guard name
      */
-    public function amLoggedAs($user, $driver = null)
+    public function amLoggedAs($user, ?string $guardName = null): void
     {
-        $guard = $auth = $this->app['auth'];
+        /** @var AuthContract $auth */
+        $auth = $this->app['auth'];
 
-        if (method_exists($auth, 'driver')) {
-            $guard = $auth->driver($driver);
-        }
-
-        if (method_exists($auth, 'guard')) {
-            $guard = $auth->guard($driver);
-        }
+        $guard = $auth->guard($guardName);
 
         if ($user instanceof Authenticatable) {
             $guard->login($user);
@@ -788,32 +828,32 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
 
     /**
      * Checks that a user is authenticated.
-     * You can specify the guard that should be use for Laravel >= 5.2.
+     * You can specify the guard that should be use as second parameter.
      *
      * @param string|null $guard
      */
     public function seeAuthentication($guard = null): void
     {
+        /** @var AuthContract $auth */
         $auth = $this->app['auth'];
 
-        if (method_exists($auth, 'guard')) {
-            $auth = $auth->guard($guard);
-        }
+        $auth = $auth->guard($guard);
 
         $this->assertTrue($auth->check(), 'There is no authenticated user');
     }
 
     /**
      * Check that user is not authenticated.
-     * You can specify the guard that should be use for Laravel >= 5.2.
+     * You can specify the guard that should be use as second parameter.
      *
      * @param string|null $guard
      */
-    public function dontSeeAuthentication($guard = null): void
+    public function dontSeeAuthentication(?string $guard = null): void
     {
+        /** @var AuthContract $auth */
         $auth = $this->app['auth'];
 
-        if (method_exists($auth, 'guard')) {
+        if (is_string($guard)) {
             $auth = $auth->guard($guard);
         }
 
@@ -851,10 +891,10 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * If you pass the name of a database table as the first argument, this method returns an integer ID.
      * You can also pass the class name of an Eloquent model, in that case this method returns an Eloquent model.
      *
-     * ``` php
+     * ```php
      * <?php
-     * $user_id = $I->haveRecord('users', array('name' => 'Davert')); // returns integer
-     * $user = $I->haveRecord('App\User', array('name' => 'Davert')); // returns Eloquent model
+     * $user_id = $I->haveRecord('users', ['name' => 'Davert']); // returns integer
+     * $user = $I->haveRecord('App\Models\User', ['name' => 'Davert']); // returns Eloquent model
      * ```
      *
      * @param string $table
@@ -878,7 +918,9 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
         }
 
         try {
-            return $this->app['db']->table($table)->insertGetId($attributes);
+            /** @var DatabaseManager $dbManager */
+            $dbManager = $this->app['db'];
+            return $dbManager->table($table)->insertGetId($attributes);
         } catch (Exception $e) {
             $this->fail("Could not insert record into table '$table':\n\n" . $e->getMessage());
         }
@@ -890,8 +932,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
-     * $I->seeRecord('users', array('name' => 'davert'));
-     * $I->seeRecord('App\User', array('name' => 'davert'));
+     * $I->seeRecord('users', ['name' => 'davert']);
+     * $I->seeRecord('App\Models\User', ['name' => 'davert']);
      * ```
      *
      * @param string $table
@@ -901,24 +943,24 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     public function seeRecord($table, $attributes = []): void
     {
         if (class_exists($table)) {
-            if (! $this->findModel($table, $attributes)) {
+            if (! $foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
                 $this->fail("Could not find $table with " . json_encode($attributes));
             }
-        } elseif (! $this->findRecord($table, $attributes)) {
+        } elseif (! $foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
             $this->fail("Could not find matching record in table '$table'");
         }
 
-        $this->assertTrue(true);
+        $this->assertTrue($foundMatchingRecord);
     }
 
     /**
      * Checks that record does not exist in database.
      * You can pass the name of a database table or the class name of an Eloquent model as the first argument.
      *
-     * ``` php
+     * ```php
      * <?php
-     * $I->dontSeeRecord('users', array('name' => 'davert'));
-     * $I->dontSeeRecord('App\User', array('name' => 'davert'));
+     * $I->dontSeeRecord('users', ['name' => 'davert']);
+     * $I->dontSeeRecord('App\Models\User', ['name' => 'davert']);
      * ```
      *
      * @param string $table
@@ -928,14 +970,14 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     public function dontSeeRecord($table, $attributes = []): void
     {
         if (class_exists($table)) {
-            if ($this->findModel($table, $attributes)) {
+            if ($foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
                 $this->fail("Unexpectedly found matching $table with " . json_encode($attributes));
             }
-        } elseif ($this->findRecord($table, $attributes)) {
+        } elseif ($foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
             $this->fail("Unexpectedly found matching record in table '$table'");
         }
 
-        $this->assertTrue(true);
+        $this->assertFalse($foundMatchingRecord);
     }
 
     /**
@@ -945,8 +987,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
-     * $record = $I->grabRecord('users', array('name' => 'davert')); // returns array
-     * $record = $I->grabRecord('App\User', array('name' => 'davert')); // returns Eloquent model
+     * $record = $I->grabRecord('users', ['name' => 'davert']); // returns array
+     * $record = $I->grabRecord('App\Models\User', ['name' => 'davert']); // returns Eloquent model
      * ```
      *
      * @param string $table
@@ -977,8 +1019,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
-     * $I->seeNumRecords(1, 'users', array('name' => 'davert'));
-     * $I->seeNumRecords(1, 'App\User', array('name' => 'davert'));
+     * $I->seeNumRecords(1, 'users', ['name' => 'davert']);
+     * $I->seeNumRecords(1, 'App\Models\User', ['name' => 'davert']);
      * ```
      *
      * @param int $expectedNum
@@ -1011,8 +1053,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
-     * $I->grabNumRecords('users', array('name' => 'davert'));
-     * $I->grabNumRecords('App\User', array('name' => 'davert'));
+     * $I->grabNumRecords('users', ['name' => 'davert']);
+     * $I->grabNumRecords('App\Models\User', ['name' => 'davert']);
      * ```
      *
      * @param string $table
@@ -1307,12 +1349,13 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * $I->haveBinding('My\Interface', 'My\Implementation');
      * ```
      *
-     * @param $abstract
-     * @param $concrete
+     * @param string $abstract
+     * @param Closure|string|null $concrete
+     * @param bool $shared
      */
-    public function haveBinding($abstract, $concrete): void
+    public function haveBinding(string $abstract, $concrete = null, bool $shared = false): void
     {
-        $this->client->haveBinding($abstract, $concrete);
+        $this->client->haveBinding($abstract, $concrete, $shared);
     }
 
     /**
@@ -1321,13 +1364,13 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
-     * $I->haveSingleton('My\Interface', 'My\Singleton');
+     * $I->haveSingleton('App\MyInterface', 'App\MySingleton');
      * ```
      *
-     * @param $abstract
-     * @param $concrete
+     * @param string $abstract
+     * @param Closure|string|null $concrete
      */
-    public function haveSingleton($abstract, $concrete): void
+    public function haveSingleton(string $abstract, $concrete): void
     {
         $this->client->haveBinding($abstract, $concrete, true);
     }
@@ -1346,11 +1389,11 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *     ->give('value');
      * ```
      *
-     * @param $concrete
-     * @param $abstract
-     * @param $implementation
+     * @param string $concrete
+     * @param string $abstract
+     * @param Closure|string $implementation
      */
-    public function haveContextualBinding($concrete, $abstract, $implementation): void
+    public function haveContextualBinding(string $concrete, string $abstract, $implementation): void
     {
         $this->client->haveContextualBinding($concrete, $abstract, $implementation);
     }
@@ -1361,13 +1404,13 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * ``` php
      * <?php
-     * $I->haveInstance('My\Class', new My\Class());
+     * $I->haveInstance('App\MyClass', new App\MyClass());
      * ```
      *
-     * @param $abstract
-     * @param $instance
+     * @param string $abstract
+     * @param mixed $instance
      */
-    public function haveInstance($abstract, $instance): void
+    public function haveInstance(string $abstract, $instance): void
     {
         $this->client->haveInstance($abstract, $instance);
     }
@@ -1383,9 +1426,9 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * });
      * ```
      *
-     * @param $handler
+     * @param callable $handler
      */
-    public function haveApplicationHandler($handler): void
+    public function haveApplicationHandler(callable $handler): void
     {
         $this->client->haveApplicationHandler($handler);
     }
@@ -1397,9 +1440,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * <?php
      * $I->clearApplicationHandlers();
      * ```
-     *
      */
-    public function clearApplicationHandlers()
+    public function clearApplicationHandlers(): void
     {
         $this->client->clearApplicationHandlers();
     }
