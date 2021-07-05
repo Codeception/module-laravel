@@ -22,6 +22,8 @@ composer require "codeception/module-laravel" --dev
 
 See [the module documentation](https://codeception.com/docs/modules/Laravel5).
 
+[Changelog](https://github.com/Codeception/module-laravel/releases)
+
 ### How to Contribute
 
 See [the contribution guide](/CONTRIBUTING.md).
