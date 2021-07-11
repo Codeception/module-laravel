@@ -441,7 +441,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * @param OutputInterface|null $output
      * @return string|void
      */
-    public function callArtisan(string $command, $parameters = [], OutputInterface $output = null): string
+    public function callArtisan(string $command, $parameters = [], OutputInterface $output = null)
     {
         $console = $this->app->make(Kernel::class);
         if (!$output) {
