@@ -471,7 +471,7 @@ class Laravel extends Client
      * @param array $files
      * @return array
      */
-    protected function filterFiles(array $files)
+    protected function filterFiles(array $files): array
     {
         $files = parent::filterFiles($files);
         return $this->convertToTestFiles($files);
