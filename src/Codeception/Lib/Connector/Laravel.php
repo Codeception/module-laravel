@@ -463,4 +463,36 @@ class Laravel extends Client
     {
         $this->applicationHandlers = [];
     }
+    
+    /**
+     * Make sure files are \Illuminate\Http\UploadedFile instances with the private $test property set to true.
+     * Fixes issue https://github.com/Codeception/Codeception/pull/3417.
+     *
+     * @param array $files
+     * @return array
+     */
+    protected function filterFiles(array $files)
+    {
+        $files = parent::filterFiles($files);
+        return $this->convertToTestFiles($files);
+    }
+
+    /**
+     * @param array $files
+     * @return array
+     */
+    private function convertToTestFiles(array $files): array
+    {
+        $filtered = [];
+
+        foreach ($files as $key => $value) {
+            if (is_array($value)) {
+                $filtered[$key] = $this->convertToTestFiles($value);
+            } else {
+                $filtered[$key] = UploadedFile::createFromBase($value, true);
+            }
+        }
+
+        return $filtered;
+    }
 }
