@@ -258,7 +258,7 @@ class Laravel extends Client
         $method = method_exists($this->app['events'], 'dispatch') ? 'dispatch' : 'fire';
 
         $mock = Stub::makeEmpty(Dispatcher::class, [
-           $method => $callback
+            $method => $callback
         ]);
 
         $this->app->instance('events', $mock);
@@ -464,7 +464,7 @@ class Laravel extends Client
     {
         $this->applicationHandlers = [];
     }
-    
+
     /**
      * Make sure files are \Illuminate\Http\UploadedFile instances with the private $test property set to true.
      * Fixes issue https://github.com/Codeception/Codeception/pull/3417.
