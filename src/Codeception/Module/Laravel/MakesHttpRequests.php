@@ -13,9 +13,11 @@ trait MakesHttpRequests
      * <?php
      * $I->disableMiddleware();
      * ```
+     *
+     * @param string|array|null $middleware
      */
-    public function disableMiddleware()
+    public function disableMiddleware($middleware = null): void
     {
-        $this->client->disableMiddleware();
+        $this->client->disableMiddleware($middleware);
     }
 }

@@ -37,7 +37,7 @@ trait InteractsWithEvents
     /**
      * Make sure events did not fire during the test.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->dontSeeEventTriggered('App\MyEvent');
      * $I->dontSeeEventTriggered(new App\Events\MyEvent());
@@ -54,7 +54,7 @@ trait InteractsWithEvents
             if ($triggered) {
                 $expectedEvent = is_object($expectedEvent) ? get_class($expectedEvent) : $expectedEvent;
 
-                $this->fail("The '$expectedEvent' event triggered");
+                $this->fail("The '{$expectedEvent}' event triggered");
             }
         }
     }
@@ -78,7 +78,7 @@ trait InteractsWithEvents
             if (! $this->client->eventTriggered($expectedEvent)) {
                 $expectedEvent = is_object($expectedEvent) ? get_class($expectedEvent) : $expectedEvent;
 
-                $this->fail("The '$expectedEvent' event did not trigger");
+                $this->fail("The '{$expectedEvent}' event did not trigger");
             }
         }
     }

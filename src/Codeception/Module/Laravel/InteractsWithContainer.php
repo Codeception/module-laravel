@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
+use Illuminate\Contracts\Foundation\Application;
+
 trait InteractsWithContainer
 {
     /**
      * Clear the registered application handlers.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->clearApplicationHandlers();
      * ```
@@ -21,19 +23,17 @@ trait InteractsWithContainer
 
     /**
      * Provides access the Laravel application object.
-     *
-     * @return \Illuminate\Contracts\Foundation\Application
      */
-    public function getApplication()
+    public function getApplication(): Application
     {
         return $this->app;
     }
 
     /**
      * Return an instance of a class from the Laravel service container.
-     * (https://laravel.com/docs/master/container)
+     * (https://laravel.com/docs/7.x/container)
      *
-     * ``` php
+     * ```php
      * <?php
      * // In Laravel
      * App::bind('foo', function($app) {
@@ -46,7 +46,6 @@ trait InteractsWithContainer
      * // Will return an instance of FooBar, also works for singletons.
      * ```
      *
-     * @param string $class
      * @return mixed
      */
     public function grabService(string $class)
@@ -58,14 +57,12 @@ trait InteractsWithContainer
      * Register a handler than can be used to modify the Laravel application object after it is initialized.
      * The Laravel application object will be passed as an argument to the handler.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->haveApplicationHandler(function($app) {
      *     $app->make('config')->set(['test_value' => '10']);
      * });
      * ```
-     *
-     * @param callable $handler
      */
     public function haveApplicationHandler(callable $handler): void
     {
@@ -74,9 +71,9 @@ trait InteractsWithContainer
 
     /**
      * Add a binding to the Laravel service container.
-     * (https://laravel.com/docs/master/container)
+     * (https://laravel.com/docs/7.x/container)
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->haveBinding('My\Interface', 'My\Implementation');
      * ```
@@ -92,9 +89,9 @@ trait InteractsWithContainer
 
     /**
      * Add a contextual binding to the Laravel service container.
-     * (https://laravel.com/docs/master/container)
+     * (https://laravel.com/docs/7.x/container)
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->haveContextualBinding('My\Class', '$variable', 'value');
      *
@@ -115,26 +112,23 @@ trait InteractsWithContainer
 
     /**
      * Add an instance binding to the Laravel service container.
-     * (https://laravel.com/docs/master/container)
+     * (https://laravel.com/docs/7.x/container)
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->haveInstance('App\MyClass', new App\MyClass());
      * ```
-     *
-     * @param string $abstract
-     * @param mixed $instance
      */
-    public function haveInstance(string $abstract, $instance): void
+    public function haveInstance(string $abstract, object $instance): void
     {
         $this->client->haveInstance($abstract, $instance);
     }
 
     /**
      * Add a singleton binding to the Laravel service container.
-     * (https://laravel.com/docs/master/container)
+     * (https://laravel.com/docs/7.x/container)
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->haveSingleton('App\MyInterface', 'App\MySingleton');
      * ```
@@ -147,10 +141,7 @@ trait InteractsWithContainer
         $this->client->haveBinding($abstract, $concrete, true);
     }
 
-    /**
-     * @param \Illuminate\Contracts\Foundation\Application $app
-     */
-    public function setApplication($app): void
+    public function setApplication(Application $app): void
     {
         $this->app = $app;
     }

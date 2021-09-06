@@ -14,7 +14,7 @@ trait InteractsWithExceptionHandling
      * $I->disableExceptionHandling();
      * ```
      */
-    public function disableExceptionHandling()
+    public function disableExceptionHandling(): void
     {
         $this->client->disableExceptionHandling();
     }
@@ -27,7 +27,7 @@ trait InteractsWithExceptionHandling
      * $I->enableExceptionHandling();
      * ```
      */
-    public function enableExceptionHandling()
+    public function enableExceptionHandling(): void
     {
         $this->client->enableExceptionHandling();
     }
