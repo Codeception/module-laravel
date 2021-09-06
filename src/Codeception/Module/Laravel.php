@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module;
 
-use Codeception\Configuration;
+use Codeception\Configuration as CodeceptConfig;
 use Codeception\Exception\ModuleConfigException;
 use Codeception\Lib\Connector\Laravel as LaravelConnector;
 use Codeception\Lib\Framework;
@@ -21,16 +21,17 @@ use Codeception\Module\Laravel\InteractsWithRouting;
 use Codeception\Module\Laravel\InteractsWithSession;
 use Codeception\Module\Laravel\InteractsWithViews;
 use Codeception\Module\Laravel\MakesHttpRequests;
+use Codeception\Module\Laravel\ServicesTrait;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
-use Exception;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Database\Eloquent\Factory;
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Route;
 use ReflectionException;
+use Symfony\Component\Routing\CompiledRoute as SymfonyCompiledRoute;
+use Throwable;
 
 /**
  *
@@ -134,6 +135,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     use InteractsWithSession;
     use InteractsWithViews;
     use MakesHttpRequests;
+    use ServicesTrait;
 
     /**
      * @var Application
@@ -141,11 +143,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     public $app;
 
     /**
+     * @var LaravelConnector
+     */
+    public $client;
+
+    /**
      * @var array
      */
     public $config = [];
 
-    public function __construct(ModuleContainer $container, ?array $config = null)
+    public function __construct(ModuleContainer $moduleContainer, ?array $config = null)
     {
         $this->config = array_merge(
             [
@@ -167,15 +174,18 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
             (array)$config
         );
 
-        $projectDir = explode($this->config['packages'], Configuration::projectDir())[0];
+        $projectDir = explode($this->config['packages'], CodeceptConfig::projectDir())[0];
         $projectDir .= $this->config['root'];
 
         $this->config['project_dir'] = $projectDir;
         $this->config['bootstrap_file'] = $projectDir . $this->config['bootstrap'];
 
-        parent::__construct($container);
+        parent::__construct($moduleContainer);
     }
 
+    /**
+     * @return string[]
+     */
     public function _parts(): array
     {
         return ['orm'];
@@ -194,8 +204,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * Before hook.
      *
-     * @param TestInterface $test
-     * @throws Exception
+     * @throws Throwable
      */
     public function _before(TestInterface $test)
     {
@@ -207,7 +216,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
         }
 
         if ($this->applicationUsesDatabase() && $this->config['cleanup']) {
-            $this->app['db']->beginTransaction();
+            $this->getDb()->beginTransaction();
             $this->debugSection('Database', 'Transaction started');
         }
 
@@ -219,13 +228,12 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * After hook.
      *
-     * @param TestInterface $test
-     * @throws Exception
+     * @throws Throwable
      */
     public function _after(TestInterface $test)
     {
         if ($this->applicationUsesDatabase()) {
-            $db = $this->app['db'];
+            $db = $this->getDb();
 
             if ($db instanceof DatabaseManager) {
                 if ($this->config['cleanup']) {
@@ -245,18 +253,16 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
 
             // Remove references to Faker in factories to prevent memory leak
             unset($this->app[\Faker\Generator::class]);
-            unset($this->app[Factory::class]);
+            unset($this->app[\Illuminate\Database\Eloquent\Factory::class]);
         }
     }
 
     /**
      * Does the application use the database?
-     *
-     * @return bool
      */
     private function applicationUsesDatabase(): bool
     {
-        return ! empty($this->app['config']['database.default']);
+        return ! empty($this->getConfig()['database.default']);
     }
 
     /**
@@ -264,14 +270,14 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      *
      * @throws ModuleConfigException
      */
-    protected function checkBootstrapFileExists(): void
+    private function checkBootstrapFileExists(): void
     {
         $bootstrapFile = $this->config['bootstrap_file'];
 
         if (!file_exists($bootstrapFile)) {
             throw new ModuleConfigException(
                 $this,
-                "Laravel bootstrap file not found in $bootstrapFile.\n"
+                "Laravel bootstrap file not found in {$bootstrapFile}.\n"
                 . "Please provide a valid path by using the 'bootstrap' config param. "
             );
         }
@@ -280,7 +286,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * Register Laravel autoloaders.
      */
-    protected function registerAutoloaders(): void
+    private function registerAutoloaders(): void
     {
         require $this->config['project_dir'] . $this->config['vendor_dir'] . DIRECTORY_SEPARATOR . 'autoload.php';
     }
@@ -289,24 +295,25 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      * Revert back to the Codeception error handler,
      * because Laravel registers it's own error handler.
      */
-    protected function revertErrorHandler(): void
+    private function revertErrorHandler(): void
     {
-        $handler = new ErrorHandler();
-        set_error_handler([$handler, 'errorHandler']);
+        $errorHandler = new ErrorHandler();
+        set_error_handler([$errorHandler, 'errorHandler']);
     }
 
     /**
      * Returns a list of recognized domain names.
      * This elements of this list are regular expressions.
      *
-     * @return array
      * @throws ReflectionException
+     * @return string[]
      */
     protected function getInternalDomains(): array
     {
         $internalDomains = [$this->getApplicationDomainRegex()];
 
-        foreach ($this->app['routes'] as $route) {
+        /** @var Route $route */
+        foreach ($this->getRoutes() as $route) {
             if (!is_null($route->domain())) {
                 $internalDomains[] = $this->getDomainRegex($route);
             }
@@ -330,13 +337,12 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * Get the regex for matching the domain part of this route.
      *
-     * @param Route $route
-     * @return string
      * @throws ReflectionException
      */
-    private function getDomainRegex(Route $route)
+    private function getDomainRegex(Route $route): string
     {
         ReflectionHelper::invokePrivateMethod($route, 'compileRoute');
+        /** @var SymfonyCompiledRoute $compiledRoute */
         $compiledRoute = ReflectionHelper::readPrivateProperty($route, 'compiled');
 
         return $compiledRoute->getHostRegex();
