@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
-use Illuminate\Contracts\Session\Session;
-
 trait InteractsWithSession
 {
     /**
      * Assert that a session variable exists.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->seeInSession('key');
      * $I->seeInSession('key', 'value');
@@ -27,28 +25,25 @@ trait InteractsWithSession
             return;
         }
 
-        /** @var Session $session */
-        $session = $this->app['session'];
+        $session = $this->getSession();
 
         if (!$session->has($key)) {
-            $this->fail("No session variable with key '$key'");
+            $this->fail("No session variable with key '{$key}'");
         }
 
         if (! is_null($value)) {
-            $this->assertEquals($value, $session->get($key));
+            $this->assertSame($value, $session->get($key));
         }
     }
 
     /**
      * Assert that the session has a given list of values.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->seeSessionHasValues(['key1', 'key2']);
      * $I->seeSessionHasValues(['key1' => 'value1', 'key2' => 'value2']);
      * ```
-     *
-     * @param array $bindings
      */
     public function seeSessionHasValues(array $bindings): void
     {

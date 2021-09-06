@@ -4,38 +4,48 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
-use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Factories\Factory as EloquentFactory;
 use Illuminate\Database\Eloquent\FactoryBuilder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use RuntimeException;
+use Throwable;
 
 trait InteractsWithEloquent
 {
-
     /**
      * Checks that record does not exist in database.
      * You can pass the name of a database table or the class name of an Eloquent model as the first argument.
      *
      * ```php
      * <?php
-     * $I->dontSeeRecord('users', ['name' => 'davert']);
-     * $I->dontSeeRecord('App\Models\User', ['name' => 'davert']);
+     * $I->dontSeeRecord($user);
+     * $I->dontSeeRecord('users', ['name' => 'Davert']);
+     * $I->dontSeeRecord('App\Models\User', ['name' => 'Davert']);
      * ```
      *
-     * @param string $table
+     * @param string|class-string|object $table
      * @param array $attributes
      * @part orm
      */
     public function dontSeeRecord($table, $attributes = []): void
     {
+        if ($table instanceof EloquentModel) {
+            $this->dontSeeRecord($table->getTable(), [$table->getKeyName() => $table->getKey()]);
+        }
+
         if (class_exists($table)) {
             if ($foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
-                $this->fail("Unexpectedly found matching $table with " . json_encode($attributes));
+                $this->fail("Unexpectedly found matching {$table} with " . json_encode($attributes));
             }
         } elseif ($foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
-            $this->fail("Unexpectedly found matching record in table '$table'");
+            $this->fail("Unexpectedly found matching record in table '{$table}'");
         }
 
         $this->assertFalse($foundMatchingRecord);
@@ -45,15 +55,12 @@ trait InteractsWithEloquent
      * Retrieves number of records from database
      * You can pass the name of a database table or the class name of an Eloquent model as the first argument.
      *
-     * ``` php
+     * ```php
      * <?php
-     * $I->grabNumRecords('users', ['name' => 'davert']);
-     * $I->grabNumRecords('App\Models\User', ['name' => 'davert']);
+     * $I->grabNumRecords('users', ['name' => 'Davert']);
+     * $I->grabNumRecords('App\Models\User', ['name' => 'Davert']);
      * ```
      *
-     * @param string $table
-     * @param array $attributes
-     * @return int
      * @part orm
      */
     public function grabNumRecords(string $table, array $attributes = []): int
@@ -66,10 +73,10 @@ trait InteractsWithEloquent
      * If you pass the name of a database table as the first argument, this method returns an array.
      * You can also pass the class name of an Eloquent model, in that case this method returns an Eloquent model.
      *
-     * ``` php
+     * ```php
      * <?php
-     * $record = $I->grabRecord('users', ['name' => 'davert']); // returns array
-     * $record = $I->grabRecord('App\Models\User', ['name' => 'davert']); // returns Eloquent model
+     * $record = $I->grabRecord('users', ['name' => 'Davert']); // returns array
+     * $record = $I->grabRecord('App\Models\User', ['name' => 'Davert']); // returns Eloquent model
      * ```
      *
      * @param string $table
@@ -80,15 +87,15 @@ trait InteractsWithEloquent
     public function grabRecord($table, $attributes = [])
     {
         if (class_exists($table)) {
-            if (! $model = $this->findModel($table, $attributes)) {
-                $this->fail("Could not find $table with " . json_encode($attributes));
+            if (!$model = $this->findModel($table, $attributes)) {
+                $this->fail("Could not find {$table} with " . json_encode($attributes));
             }
 
             return $model;
         }
 
-        if (! $record = $this->findRecord($table, $attributes)) {
-            $this->fail("Could not find matching record in table '$table'");
+        if (!$record = $this->findRecord($table, $attributes)) {
+            $this->fail("Could not find matching record in table '{$table}'");
         }
 
         return $record;
@@ -97,17 +104,15 @@ trait InteractsWithEloquent
     /**
      * Use Laravel model factory to create a model.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->have('App\Models\User');
      * $I->have('App\Models\User', ['name' => 'John Doe']);
      * $I->have('App\Models\User', [], 'admin');
      * ```
      *
-     * @see https://laravel.com/docs/6.x/database-testing#using-factories
-     * @param string $model
-     * @param array $attributes
-     * @param string $name
+     * @see https://laravel.com/docs/7.x/database-testing#using-factories
+     *
      * @return mixed
      * @part orm
      */
@@ -122,35 +127,32 @@ trait InteractsWithEloquent
             }
 
             return $model;
-        } catch (Exception $e) {
-            $this->fail('Could not create model: \n\n' . get_class($e) . '\n\n' . $e->getMessage());
+        } catch (Throwable $t) {
+            $this->fail('Could not create model: \n\n' . get_class($t) . '\n\n' . $t->getMessage());
         }
     }
 
     /**
      * Use Laravel model factory to create multiple models.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->haveMultiple('App\Models\User', 10);
      * $I->haveMultiple('App\Models\User', 10, ['name' => 'John Doe']);
      * $I->haveMultiple('App\Models\User', 10, [], 'admin');
      * ```
      *
-     * @see https://laravel.com/docs/6.x/database-testing#using-factories
-     * @param string $model
-     * @param int $times
-     * @param array $attributes
-     * @param string $name
-     * @return mixed
+     * @see https://laravel.com/docs/7.x/database-testing#using-factories
+     *
+     * @return EloquentModel|EloquentCollection
      * @part orm
      */
     public function haveMultiple(string $model, int $times, array $attributes = [], string $name = 'default')
     {
         try {
             return $this->modelFactory($model, $name, $times)->create($attributes);
-        } catch (Exception $e) {
-            $this->fail("Could not create model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
+        } catch (Throwable $t) {
+            $this->fail("Could not create model: \n\n" . get_class($t) . "\n\n" . $t->getMessage());
         }
     }
 
@@ -166,7 +168,7 @@ trait InteractsWithEloquent
      * ```
      *
      * @param string $table
-     * @param array  $attributes
+     * @param array $attributes
      * @return EloquentModel|int
      * @throws RuntimeException
      * @part orm
@@ -176,8 +178,8 @@ trait InteractsWithEloquent
         if (class_exists($table)) {
             $model = new $table;
 
-            if (! $model instanceof EloquentModel) {
-                throw new RuntimeException("Class $table is not an Eloquent model");
+            if (!$model instanceof EloquentModel) {
+                throw new RuntimeException("Class {$table} is not an Eloquent model");
             }
 
             $model->fill($attributes)->save();
@@ -186,64 +188,58 @@ trait InteractsWithEloquent
         }
 
         try {
-            /** @var DatabaseManager $dbManager */
-            $dbManager = $this->app['db'];
-            return $dbManager->table($table)->insertGetId($attributes);
-        } catch (Exception $e) {
-            $this->fail("Could not insert record into table '$table':\n\n" . $e->getMessage());
+            $table = $this->getDb()->table($table);
+            return $table->insertGetId($attributes);
+        } catch (Throwable $t) {
+            $this->fail("Could not insert record into table '$table':\n\n" . $t->getMessage());
         }
     }
 
     /**
      * Use Laravel model factory to make a model instance.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->make('App\Models\User');
      * $I->make('App\Models\User', ['name' => 'John Doe']);
      * $I->make('App\Models\User', [], 'admin');
      * ```
      *
-     * @see https://laravel.com/docs/6.x/database-testing#using-factories
-     * @param string $model
-     * @param array $attributes
-     * @param string $name
-     * @return mixed
+     * @see https://laravel.com/docs/7.x/database-testing#using-factories
+     *
+     * @return EloquentCollection|EloquentModel
      * @part orm
      */
     public function make(string $model, array $attributes = [], string $name = 'default')
     {
         try {
             return $this->modelFactory($model, $name)->make($attributes);
-        } catch (Exception $e) {
-            $this->fail("Could not make model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
+        } catch (Throwable $t) {
+            $this->fail("Could not make model: \n\n" . get_class($t) . "\n\n" . $t->getMessage());
         }
     }
 
     /**
      * Use Laravel model factory to make multiple model instances.
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->makeMultiple('App\Models\User', 10);
      * $I->makeMultiple('App\Models\User', 10, ['name' => 'John Doe']);
      * $I->makeMultiple('App\Models\User', 10, [], 'admin');
      * ```
      *
-     * @see https://laravel.com/docs/6.x/database-testing#using-factories
-     * @param string $model
-     * @param int $times
-     * @param array $attributes
-     * @param string $name
-     * @return mixed
+     * @see https://laravel.com/docs/7.x/database-testing#using-factories
+     *
+     * @return EloquentCollection|EloquentModel
      * @part orm
      */
     public function makeMultiple(string $model, int $times, array $attributes = [], string $name = 'default')
     {
         try {
             return $this->modelFactory($model, $name, $times)->make($attributes);
-        } catch (Exception $e) {
-            $this->fail("Could not make model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
+        } catch (Throwable $t) {
+            $this->fail("Could not make model: \n\n" . get_class($t) . "\n\n" . $t->getMessage());
         }
     }
 
@@ -251,29 +247,26 @@ trait InteractsWithEloquent
      * Checks that number of given records were found in database.
      * You can pass the name of a database table or the class name of an Eloquent model as the first argument.
      *
-     * ``` php
+     * ```php
      * <?php
-     * $I->seeNumRecords(1, 'users', ['name' => 'davert']);
-     * $I->seeNumRecords(1, 'App\Models\User', ['name' => 'davert']);
+     * $I->seeNumRecords(1, 'users', ['name' => 'Davert']);
+     * $I->seeNumRecords(1, 'App\Models\User', ['name' => 'Davert']);
      * ```
      *
-     * @param int $expectedNum
-     * @param string $table
-     * @param array $attributes
      * @part orm
      */
     public function seeNumRecords(int $expectedNum, string $table, array $attributes = []): void
     {
         if (class_exists($table)) {
             $currentNum = $this->countModels($table, $attributes);
-            $this->assertEquals(
+            $this->assertSame(
                 $expectedNum,
                 $currentNum,
                 "The number of found {$table} ({$currentNum}) does not match expected number {$expectedNum} with " . json_encode($attributes)
             );
         } else {
             $currentNum = $this->countRecords($table, $attributes);
-            $this->assertEquals(
+            $this->assertSame(
                 $expectedNum,
                 $currentNum,
                 "The number of found records in table {$table} ({$currentNum}) does not match expected number $expectedNum with " . json_encode($attributes)
@@ -285,24 +278,29 @@ trait InteractsWithEloquent
      * Checks that record exists in database.
      * You can pass the name of a database table or the class name of an Eloquent model as the first argument.
      *
-     * ``` php
+     * ```php
      * <?php
-     * $I->seeRecord('users', ['name' => 'davert']);
-     * $I->seeRecord('App\Models\User', ['name' => 'davert']);
+     * $I->seeRecord($user);
+     * $I->seeRecord('users', ['name' => 'Davert']);
+     * $I->seeRecord('App\Models\User', ['name' => 'Davert']);
      * ```
      *
-     * @param string $table
+     * @param string|class-string|object $table
      * @param array $attributes
      * @part orm
      */
     public function seeRecord($table, $attributes = []): void
     {
+        if ($table instanceof EloquentModel) {
+            $this->seeRecord($table->getTable(), [$table->getKeyName() => $table->getKey()]);
+        }
+
         if (class_exists($table)) {
-            if (! $foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
-                $this->fail("Could not find $table with " . json_encode($attributes));
+            if (!$foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
+                $this->fail("Could not find {$table} with " . json_encode($attributes));
             }
-        } elseif (! $foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
-            $this->fail("Could not find matching record in table '$table'");
+        } elseif (!$foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
+            $this->fail("Could not find matching record in table '{$table}'");
         }
 
         $this->assertTrue($foundMatchingRecord);
@@ -320,32 +318,22 @@ trait InteractsWithEloquent
         return $query->count();
     }
 
-    /**
-     * @param string $modelClass
-     * @param array $attributes
-     *
-     * @return EloquentModel
-     */
-    protected function findModel(string $modelClass, array $attributes = [])
+    protected function findModel(string $modelClass, array $attributes): ?EloquentModel
     {
         $query = $this->buildQuery($modelClass, $attributes);
-
         return $query->first();
     }
 
-    protected function findRecord(string $table, array $attributes = []): array
+    protected function findRecord(string $table, array $attributes): array
     {
         $query = $this->buildQuery($table, $attributes);
-        return (array) $query->first();
+        return (array)$query->first();
     }
 
     /**
-     * @param string $model
-     * @param string $name
-     * @param int $times
-     * @return FactoryBuilder|\Illuminate\Database\Eloquent\Factories\Factory
+     * @return FactoryBuilder|EloquentFactory
      */
-    protected function modelFactory(string $model, string $name, $times = 1)
+    protected function modelFactory(string $model, string $name, int $times = 1)
     {
         if (version_compare(Application::VERSION, '7.0.0', '<')) {
             return factory($model, $name, $times);
@@ -357,18 +345,11 @@ trait InteractsWithEloquent
     /**
      * Build Eloquent query with attributes
      *
-     * @param string $table
-     * @param array $attributes
-     * @return EloquentModel
-     * @part orm
+     * @return EloquentBuilder|QueryBuilder
      */
-    private function buildQuery(string $table, $attributes = [])
+    private function buildQuery(string $table, array $attributes = [])
     {
-        if (class_exists($table)) {
-            $query = $this->getQueryBuilderFromModel($table);
-        } else {
-            $query = $this->getQueryBuilderFromTable($table);
-        }
+        $query = class_exists($table) ? $this->getQueryBuilderFromModel($table) : $this->getQueryBuilderFromTable($table);
 
         foreach ($attributes as $key => $value) {
             if (is_array($value)) {
@@ -382,30 +363,19 @@ trait InteractsWithEloquent
         return $query;
     }
 
-    /**
-     * @param string $modelClass
-     *
-     * @return EloquentModel
-     * @throws RuntimeException
-     */
-    protected function getQueryBuilderFromModel(string $modelClass)
+    private function getQueryBuilderFromModel(string $modelClass): EloquentBuilder
     {
         $model = new $modelClass;
 
         if (!$model instanceof EloquentModel) {
-            throw new RuntimeException("Class $modelClass is not an Eloquent model");
+            throw new RuntimeException("Class {$modelClass} is not an Eloquent model");
         }
 
         return $model->newQuery();
     }
 
-    /**
-     * @param string $table
-     *
-     * @return EloquentModel
-     */
-    protected function getQueryBuilderFromTable(string $table)
+    private function getQueryBuilderFromTable(string $table): Builder
     {
-        return $this->app['db']->table($table);
+        return $this->getDb()->table($table);
     }
 }

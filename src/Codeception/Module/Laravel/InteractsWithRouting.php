@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
-use Illuminate\Contracts\Routing\UrlGenerator;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
-use Illuminate\Routing\Router;
 use ReflectionClass;
 use ReflectionException;
 
@@ -16,7 +13,7 @@ trait InteractsWithRouting
     /**
      * Opens web page by action name
      *
-     * ``` php
+     * ```php
      * <?php
      * // Laravel 6 or 7:
      * $I->amOnAction('PostsController@index');
@@ -32,9 +29,8 @@ trait InteractsWithRouting
     {
         $route = $this->getRouteByAction($action);
         $absolute = !is_null($route->domain());
-        /** @var UrlGenerator $urlGenerator */
-        $urlGenerator = $this->app['url'];
-        $url = $urlGenerator->action($action, $parameters, $absolute);
+
+        $url = $this->getUrlGenerator()->action($action, $parameters, $absolute);
 
         $this->amOnPage($url);
     }
@@ -55,16 +51,15 @@ trait InteractsWithRouting
         $route = $this->getRouteByName($routeName);
 
         $absolute = !is_null($route->domain());
-        /** @var UrlGenerator $urlGenerator */
-        $urlGenerator = $this->app['url'];
-        $url = $urlGenerator->route($routeName, $params, $absolute);
+
+        $url = $this->getUrlGenerator()->route($routeName, $params, $absolute);
         $this->amOnPage($url);
     }
 
     /**
      * Checks that current url matches action
      *
-     * ``` php
+     * ```php
      * <?php
      * // Laravel 6 or 7:
      * $I->seeCurrentActionIs('PostsController@index');
@@ -72,111 +67,92 @@ trait InteractsWithRouting
      * // Laravel 8+:
      * $I->seeCurrentActionIs(PostsController::class . '@index');
      * ```
-     *
-     * @param string $action
      */
     public function seeCurrentActionIs(string $action): void
     {
-        $this->getRouteByAction($action); // Fails if route does not exists
-        /** @var Request $request */
-        $request = $this->app->request;
+        $this->getRouteByAction($action);
+
+        $request = $this->getRequestObject();
         $currentRoute = $request->route();
         $currentAction = $currentRoute ? $currentRoute->getActionName() : '';
         $currentAction = ltrim(
-            str_replace( (string)$this->getRootControllerNamespace(), '', $currentAction),
+            str_replace((string)$this->getAppRootControllerNamespace(), '', $currentAction),
             '\\'
         );
 
         if ($currentAction != $action) {
-            $this->fail("Current action is \"$currentAction\"");
+            $this->fail("Current action is '{$currentAction}'");
         }
     }
 
     /**
      * Checks that current url matches route
      *
-     * ``` php
+     * ```php
      * <?php
      * $I->seeCurrentRouteIs('posts.index');
      * ```
-     * @param string $routeName
      */
     public function seeCurrentRouteIs(string $routeName): void
     {
-        $this->getRouteByName($routeName); // Fails if route does not exists
+        $this->getRouteByName($routeName);
 
-        /** @var Request $request */
-        $request = $this->app->request;
+        $request = $this->getRequestObject();
         $currentRoute = $request->route();
         $currentRouteName = $currentRoute ? $currentRoute->getName() : '';
 
         if ($currentRouteName != $routeName) {
             $message = empty($currentRouteName)
                 ? "Current route has no name"
-                : "Current route is \"$currentRouteName\"";
+                : "Current route is '{$currentRouteName}'";
             $this->fail($message);
         }
     }
 
     /**
-     * Get the root controller namespace for the application.
-     *
-     * @return string|null
      * @throws ReflectionException
      */
-    protected function getRootControllerNamespace(): ?string
+    protected function getAppRootControllerNamespace(): ?string
     {
-        $urlGenerator = $this->app['url'];
-        $reflection = new ReflectionClass($urlGenerator);
+        $urlGenerator = $this->getUrlGenerator();
+        $reflectionClass = new ReflectionClass($urlGenerator);
 
-        $property = $reflection->getProperty('rootNamespace');
+        $property = $reflectionClass->getProperty('rootNamespace');
         $property->setAccessible(true);
 
         return $property->getValue($urlGenerator);
     }
 
     /**
-     * @param string $action
-     * @return Route
+     * Get route by Action.
+     * Fails if route does not exists.
      */
     protected function getRouteByAction(string $action): Route
     {
-        $namespacedAction = $this->actionWithNamespace($action);
+        $namespacedAction = $this->normalizeActionToFullNamespacedAction($action);
 
-        if (!$route = $this->app['routes']->getByAction($namespacedAction)) {
-            $this->fail("Action '$action' does not exist");
+        if (!$route = $this->getRoutes()->getByAction($namespacedAction)) {
+            $this->fail("Action '{$action}' does not exist");
         }
 
         return $route;
     }
 
-    /**
-     * @param string $routeName
-     * @return mixed
-     */
-    protected function getRouteByName(string $routeName)
+    protected function getRouteByName(string $routeName): Route
     {
-        /** @var Router $router */
-        $router = $this->app['router'];
-        $routes = $router->getRoutes();
+        $routes = $this->getRouter()->getRoutes();
         if (!$route = $routes->getByName($routeName)) {
-            $this->fail("Route with name '$routeName' does not exist");
+            $this->fail("Route with name '{$routeName}' does not exist");
         }
 
         return $route;
     }
 
-    /**
-     * Normalize an action to full namespaced action.
-     *
-     * @param string $action
-     * @return string
-     */
-    protected function actionWithNamespace(string $action): string
+    protected function normalizeActionToFullNamespacedAction(string $action): string
     {
-        $rootNamespace = $this->getRootControllerNamespace();
+        $rootNamespace = $this->getAppRootControllerNamespace();
 
-        if ($rootNamespace && !(strpos($action, '\\') === 0)) {
+        if ($rootNamespace && strpos($action, '\\') !== 0) {
             return $rootNamespace . '\\' . $action;
         }
 
