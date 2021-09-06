@@ -98,6 +98,7 @@ use Throwable;
  *     * haveRecord
  *     * make
  *     * makeMultiple
+ *     * seedDatabase
  *     * seeNumRecords
  *     * seeRecord
  *
