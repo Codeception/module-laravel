@@ -244,6 +244,18 @@ trait InteractsWithEloquent
     }
 
     /**
+     * Seed a given database connection.
+     *
+     * @param class-string|class-string[] $seeders
+     */
+    public function seedDatabase($seeders = 'Database\\Seeders\\DatabaseSeeder'): void
+    {
+        foreach (Arr::wrap($seeders) as $seeder) {
+            $this->callArtisan('db:seed', ['--class' => $seeder, '--no-interaction' => true]);
+        }
+    }
+
+    /**
      * Checks that number of given records were found in database.
      * You can pass the name of a database table or the class name of an Eloquent model as the first argument.
      *
