@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
+use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 trait InteractsWithAuthentication
@@ -41,6 +42,60 @@ trait InteractsWithAuthentication
     }
 
     /**
+     * Set the given user object to the current or specified Guard.
+     */
+    public function amActingAs(Authenticatable $user, string $guardName = null): void
+    {
+        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
+            $user->wasRecentlyCreated = false;
+        }
+
+        $this->getAuth()->guard($guardName)->setUser($user);
+
+        $this->getAuth()->shouldUse($guardName);
+    }
+
+    /**
+     * Assert that the user is authenticated as the given user.
+     */
+    public function assertAuthenticatedAs(Authenticatable $user, string $guardName = null): void
+    {
+        $expected = $this->getAuth()->guard($guardName)->user();
+
+        $this->assertNotNull($expected, 'The current user is not authenticated.');
+
+        $this->assertInstanceOf(
+            get_class($expected), $user,
+            'The currently authenticated user is not who was expected'
+        );
+
+        $this->assertSame(
+            $expected->getAuthIdentifier(), $user->getAuthIdentifier(),
+            'The currently authenticated user is not who was expected'
+        );
+    }
+
+    /**
+     * Assert that the given credentials are valid.
+     */
+    public function assertCredentials(array $credentials, string $guardName = null): void
+    {
+        $this->assertTrue(
+            $this->hasCredentials($credentials, $guardName), 'The given credentials are invalid.'
+        );
+    }
+
+    /**
+     * Assert that the given credentials are invalid.
+     */
+    public function assertInvalidCredentials(array $credentials, string $guardName = null): void
+    {
+        $this->assertFalse(
+            $this->hasCredentials($credentials, $guardName), 'The given credentials are valid.'
+        );
+    }
+
+    /**
      * Check that user is not authenticated.
      */
     public function dontSeeAuthentication(string $guardName = null): void
@@ -62,6 +117,20 @@ trait InteractsWithAuthentication
     public function logout(): void
     {
         $this->getAuth()->logout();
+    }
+
+    /**
+     * Return true if the credentials are valid, false otherwise.
+     */
+    protected function hasCredentials(array $credentials, string $guardName = null): bool
+    {
+        /** @var GuardHelpers $guard */
+        $guard = $this->getAuth()->guard($guardName);
+        $provider = $guard->getProvider();
+
+        $user = $provider->retrieveByCredentials($credentials);
+
+        return $user && $provider->validateCredentials($user, $credentials);
     }
 
     /**
