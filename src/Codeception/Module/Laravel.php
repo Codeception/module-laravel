@@ -20,6 +20,7 @@ use Codeception\Module\Laravel\InteractsWithExceptionHandling;
 use Codeception\Module\Laravel\InteractsWithRouting;
 use Codeception\Module\Laravel\InteractsWithSession;
 use Codeception\Module\Laravel\InteractsWithViews;
+use Codeception\Module\Laravel\MakesHttpRequests;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
@@ -132,6 +133,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     use InteractsWithRouting;
     use InteractsWithSession;
     use InteractsWithViews;
+    use MakesHttpRequests;
 
     /**
      * @var Application
@@ -291,19 +293,6 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     {
         $handler = new ErrorHandler();
         set_error_handler([$handler, 'errorHandler']);
-    }
-
-    /**
-     * Disable middleware for the next requests.
-     *
-     * ```php
-     * <?php
-     * $I->disableMiddleware();
-     * ```
-     */
-    public function disableMiddleware()
-    {
-        $this->client->disableMiddleware();
     }
 
     /**
