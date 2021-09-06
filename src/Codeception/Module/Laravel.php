@@ -258,6 +258,27 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     }
 
     /**
+     * Returns a list of recognized domain names.
+     * This elements of this list are regular expressions.
+     *
+     * @throws ReflectionException
+     * @return string[]
+     */
+    protected function getInternalDomains(): array
+    {
+        $internalDomains = [$this->getApplicationDomainRegex()];
+
+        /** @var Route $route */
+        foreach ($this->getRoutes() as $route) {
+            if (!is_null($route->domain())) {
+                $internalDomains[] = $this->getDomainRegex($route);
+            }
+        }
+
+        return array_unique($internalDomains);
+    }
+
+    /**
      * Does the application use the database?
      */
     private function applicationUsesDatabase(): bool
@@ -284,46 +305,6 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     }
 
     /**
-     * Register Laravel autoloaders.
-     */
-    private function registerAutoloaders(): void
-    {
-        require $this->config['project_dir'] . $this->config['vendor_dir'] . DIRECTORY_SEPARATOR . 'autoload.php';
-    }
-
-    /**
-     * Revert back to the Codeception error handler,
-     * because Laravel registers it's own error handler.
-     */
-    private function revertErrorHandler(): void
-    {
-        $errorHandler = new ErrorHandler();
-        set_error_handler([$errorHandler, 'errorHandler']);
-    }
-
-    /**
-     * Returns a list of recognized domain names.
-     * This elements of this list are regular expressions.
-     *
-     * @throws ReflectionException
-     * @return string[]
-     */
-    protected function getInternalDomains(): array
-    {
-        $internalDomains = [$this->getApplicationDomainRegex()];
-
-        /** @var Route $route */
-        foreach ($this->getRoutes() as $route) {
-            if (!is_null($route->domain())) {
-                $internalDomains[] = $this->getDomainRegex($route);
-            }
-        }
-
-        return array_unique($internalDomains);
-    }
-
-    /**
-     * @return string
      * @throws ReflectionException
      */
     private function getApplicationDomainRegex(): string
@@ -346,5 +327,23 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
         $compiledRoute = ReflectionHelper::readPrivateProperty($route, 'compiled');
 
         return $compiledRoute->getHostRegex();
+    }
+
+    /**
+     * Register Laravel autoloaders.
+     */
+    private function registerAutoloaders(): void
+    {
+        require $this->config['project_dir'] . $this->config['vendor_dir'] . DIRECTORY_SEPARATOR . 'autoload.php';
+    }
+
+    /**
+     * Revert back to the Codeception error handler,
+     * because Laravel registers it's own error handler.
+     */
+    private function revertErrorHandler(): void
+    {
+        $errorHandler = new ErrorHandler();
+        set_error_handler([$errorHandler, 'errorHandler']);
     }
 }
