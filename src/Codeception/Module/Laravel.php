@@ -18,6 +18,7 @@ use Codeception\Module\Laravel\InteractsWithEloquent;
 use Codeception\Module\Laravel\InteractsWithEvents;
 use Codeception\Module\Laravel\InteractsWithExceptionHandling;
 use Codeception\Module\Laravel\InteractsWithRouting;
+use Codeception\Module\Laravel\InteractsWithSession;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
@@ -132,6 +133,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     use InteractsWithEvents;
     use InteractsWithExceptionHandling;
     use InteractsWithRouting;
+    use InteractsWithSession;
 
     /**
      * @var Application
@@ -304,59 +306,6 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     public function disableMiddleware()
     {
         $this->client->disableMiddleware();
-    }
-
-    /**
-     * Assert that a session variable exists.
-     *
-     * ``` php
-     * <?php
-     * $I->seeInSession('key');
-     * $I->seeInSession('key', 'value');
-     * ```
-     *
-     * @param string|array $key
-     * @param mixed|null $value
-     */
-    public function seeInSession($key, $value = null): void
-    {
-        if (is_array($key)) {
-            $this->seeSessionHasValues($key);
-            return;
-        }
-
-        /** @var Session $session */
-        $session = $this->app['session'];
-
-        if (!$session->has($key)) {
-            $this->fail("No session variable with key '$key'");
-        }
-
-        if (! is_null($value)) {
-            $this->assertEquals($value, $session->get($key));
-        }
-    }
-
-    /**
-     * Assert that the session has a given list of values.
-     *
-     * ``` php
-     * <?php
-     * $I->seeSessionHasValues(['key1', 'key2']);
-     * $I->seeSessionHasValues(['key1' => 'value1', 'key2' => 'value2']);
-     * ```
-     *
-     * @param array $bindings
-     */
-    public function seeSessionHasValues(array $bindings): void
-    {
-        foreach ($bindings as $key => $value) {
-            if (is_int($key)) {
-                $this->seeInSession($value);
-            } else {
-                $this->seeInSession($key, $value);
-            }
-        }
     }
 
     /**
