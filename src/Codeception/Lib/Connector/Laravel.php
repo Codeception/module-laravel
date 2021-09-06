@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Codeception\Lib\Connector;
 
-use Closure;
 use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
 use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
+use Codeception\Module\Laravel\ServicesTrait;
 use Codeception\Stub;
 use Exception;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Contracts\Foundation\Application as AppContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\RegisterProviders;
@@ -20,15 +20,11 @@ use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelBrowser as Client;
-use Symfony\Component\HttpKernel\Kernel as SymfonyKernel;
-use function class_alias;
-
-if (SymfonyKernel::VERSION_ID < 40300) {
-    class_alias('Symfony\Component\HttpKernel\Client', 'Symfony\Component\HttpKernel\HttpKernelBrowser');
-}
 
 class Laravel extends Client
 {
+    use ServicesTrait;
+
     /**
      * @var array
      */
@@ -40,12 +36,12 @@ class Laravel extends Client
     private $contextualBindings = [];
 
     /**
-     * @var array
+     * @var object[]
      */
     private $instances = [];
 
     /**
-     * @var array
+     * @var callable[]
      */
     private $applicationHandlers = [];
 
@@ -111,11 +107,11 @@ class Laravel extends Client
 
         $this->initialize();
 
-        $components = parse_url($this->app['config']->get('app.url', 'http://localhost'));
+        $components = parse_url($this->getConfig()->get('app.url', 'http://localhost'));
         if (array_key_exists('url', $this->module->config)) {
             $components = parse_url($this->module->config['url']);
         }
-        $host = isset($components['host']) ? $components['host'] : 'localhost';
+        $host = $components['host'] ?? 'localhost';
 
         parent::__construct($this->app, ['HTTP_HOST' => $host]);
 
@@ -127,7 +123,6 @@ class Laravel extends Client
      * Execute a request.
      *
      * @param SymfonyRequest $request
-     * @return Response
      * @throws Exception
      */
     protected function doRequest($request): Response
@@ -144,22 +139,20 @@ class Laravel extends Client
 
         $request = Request::createFromBase($request);
         $response = $this->kernel->handle($request);
-        $this->app->make(Kernel::class)->terminate($request, $response);
+        $this->getHttpKernel()->terminate($request, $response);
 
         return $response;
     }
 
-    /**
-     * @param SymfonyRequest|null $request
-     * @throws Exception
-     */
     private function initialize(SymfonyRequest $request = null): void
     {
         // Store a reference to the database object
         // so the database connection can be reused during tests
         $this->oldDb = null;
-        if (isset($this->app['db']) && $this->app['db']->connection()) {
-            $this->oldDb = $this->app['db'];
+
+        $db = $this->getDb();
+        if ($db && $db->connection()) {
+            $this->oldDb = $db;
         }
 
         $this->app = $this->kernel = $this->loadApplication();
@@ -173,36 +166,27 @@ class Laravel extends Client
 
         // Reset the old database after all the service providers are registered.
         if ($this->oldDb) {
-            $this->app['events']->listen('bootstrapped: ' . RegisterProviders::class, function () {
+            $this->getEvents()->listen('bootstrapped: ' . RegisterProviders::class, function () {
                 $this->app->singleton('db', function () {
                     return $this->oldDb;
                 });
             });
         }
 
-        $this->app->make(Kernel::class)->bootstrap();
+        $this->getHttpKernel()->bootstrap();
 
-        // Record all triggered events by adding a wildcard event listener
-        // Since Laravel 5.4 wildcard event handlers receive the event name as the first argument,
-        // but for earlier Laravel versions the firing() method of the event dispatcher should be used
-        // to determine the event name.
-        if (method_exists($this->app['events'], 'firing')) {
-            $listener = function () {
-                $this->triggeredEvents[] = $this->normalizeEvent($this->app['events']->firing());
-            };
-        } else {
-            $listener = function ($event) {
-                $this->triggeredEvents[] = $this->normalizeEvent($event);
-            };
-        }
-        $this->app['events']->listen('*', $listener);
+        $listener = function ($event) {
+            $this->triggeredEvents[] = $this->normalizeEvent($event);
+        };
+
+        $this->getEvents()->listen('*', $listener);
 
         // Replace the Laravel exception handler with our decorated exception handler,
         // so exceptions can be intercepted for the disable_exception_handling functionality.
         if (version_compare(Application::VERSION, '7.0.0', '<')) {
-            $decorator = new Laravel6ExceptionHandlerDecorator($this->app[ExceptionHandler::class]);
+            $decorator = new Laravel6ExceptionHandlerDecorator($this->getExceptionHandler());
         } else {
-            $decorator = new LaravelExceptionHandlerDecorator($this->app[ExceptionHandler::class]);
+            $decorator = new LaravelExceptionHandlerDecorator($this->getExceptionHandler());
         }
 
         $decorator->exceptionHandlingDisabled($this->exceptionHandlingDisabled);
@@ -225,11 +209,10 @@ class Laravel extends Client
 
     /**
      * Boot the Laravel application object.
-     *
-     * @return Application
      */
-    private function loadApplication(): Application
+    private function loadApplication(): AppContract
     {
+        /** @var AppContract $app */
         $app = require $this->module->config['bootstrap_file'];
         $app->loadEnvironmentFrom($this->module->config['environment_file']);
         $app->instance('request', new Request());
@@ -239,8 +222,6 @@ class Laravel extends Client
 
     /**
      * Replace the Laravel event dispatcher with a mock.
-     *
-     * @throws Exception
      */
     private function mockEventDispatcher(): void
     {
@@ -253,13 +234,7 @@ class Laravel extends Client
             return [];
         };
 
-        // In Laravel 5.4 the Illuminate\Contracts\Events\Dispatcher interface was changed,
-        // the 'fire' method was renamed to 'dispatch'. This code determines the correct method to mock.
-        $method = method_exists($this->app['events'], 'dispatch') ? 'dispatch' : 'fire';
-
-        $mock = Stub::makeEmpty(Dispatcher::class, [
-           $method => $callback
-        ]);
+        $mock = Stub::makeEmpty(Dispatcher::class, ['dispatch' => $callback]);
 
         $this->app->instance('events', $mock);
     }
@@ -372,7 +347,7 @@ class Laravel extends Client
     private function applyBindings(): void
     {
         foreach ($this->bindings as $abstract => $binding) {
-            list($concrete, $shared) = $binding;
+            [$concrete, $shared] = $binding;
 
             $this->app->bind($abstract, $concrete, $shared);
         }
@@ -400,77 +375,9 @@ class Laravel extends Client
         }
     }
 
-    //======================================================================
-    // Public methods called by module
-    //======================================================================
-
-    /**
-     * Register a Laravel service container binding that should be applied
-     * after initializing the Laravel Application object.
-     *
-     * @param string $abstract
-     * @param Closure|string|null $concrete
-     * @param bool $shared
-     */
-    public function haveBinding(string $abstract, $concrete, bool $shared = false): void
-    {
-        $this->bindings[$abstract] = [$concrete, $shared];
-    }
-
-    /**
-     * Register a Laravel service container contextual binding that should be applied
-     * after initializing the Laravel Application object.
-     *
-     * @param string $concrete
-     * @param string $abstract
-     * @param Closure|string $implementation
-     */
-    public function haveContextualBinding(string $concrete, string $abstract, $implementation): void
-    {
-        if (! isset($this->contextualBindings[$concrete])) {
-            $this->contextualBindings[$concrete] = [];
-        }
-
-        $this->contextualBindings[$concrete][$abstract] = $implementation;
-    }
-
-    /**
-     * Register a Laravel service container instance binding that should be applied
-     * after initializing the Laravel Application object.
-     *
-     * @param string $abstract
-     * @param mixed $instance
-     */
-    public function haveInstance(string $abstract, $instance): void
-    {
-        $this->instances[$abstract] = $instance;
-    }
-
-    /**
-     * Register a handler than can be used to modify the Laravel application object after it is initialized.
-     * The Laravel application object will be passed as an argument to the handler.
-     *
-     * @param callable $handler
-     */
-    public function haveApplicationHandler(callable $handler): void
-    {
-        $this->applicationHandlers[] = $handler;
-    }
-
-    /**
-     * Clear the registered application handlers.
-     */
-    public function clearApplicationHandlers(): void
-    {
-        $this->applicationHandlers = [];
-    }
-    
     /**
      * Make sure files are \Illuminate\Http\UploadedFile instances with the private $test property set to true.
      * Fixes issue https://github.com/Codeception/Codeception/pull/3417.
-     *
-     * @param array $files
-     * @return array
      */
     protected function filterFiles(array $files): array
     {
@@ -478,15 +385,19 @@ class Laravel extends Client
         return $this->convertToTestFiles($files);
     }
 
-    private function convertToTestFiles(array $files): array
+    private function convertToTestFiles(array &$files): array
     {
         $filtered = [];
 
         foreach ($files as $key => $value) {
             if (is_array($value)) {
                 $filtered[$key] = $this->convertToTestFiles($value);
+
+                $files[$key] = $value;
             } else {
                 $filtered[$key] = UploadedFile::createFromBase($value, true);
+
+                unset($files[$key]);
             }
         }
 

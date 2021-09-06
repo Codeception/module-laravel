@@ -20,7 +20,7 @@ composer require "codeception/module-laravel" --dev
 
 ## Documentation
 
-See [the module documentation](https://codeception.com/docs/modules/Laravel5).
+See [the module documentation](https://codeception.com/docs/modules/Laravel).
 
 [Changelog](https://github.com/Codeception/module-laravel/releases)
 
