@@ -13,11 +13,11 @@ use Codeception\Lib\Interfaces\ActiveRecord;
 use Codeception\Lib\Interfaces\PartedModule;
 use Codeception\Lib\ModuleContainer;
 use Codeception\Module\Laravel\InteractsWithAuthentication;
+use Codeception\Module\Laravel\InteractsWithConsole;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
 use Exception;
-use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Contracts\View\Factory as ViewContract;
@@ -35,7 +35,6 @@ use Illuminate\Support\ViewErrorBag;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
-use Symfony\Component\Console\Output\OutputInterface;
 use function is_array;
 
 /**
@@ -131,6 +130,7 @@ use function is_array;
 class Laravel extends Framework implements ActiveRecord, PartedModule
 {
     use InteractsWithAuthentication;
+    use InteractsWithConsole;
 
     /**
      * @var Application
@@ -424,34 +424,6 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
                 $this->fail("The '$expectedEvent' event triggered");
             }
         }
-    }
-
-    /**
-     * Call an Artisan command.
-     *
-     * ``` php
-     * <?php
-     * $I->callArtisan('command:name');
-     * $I->callArtisan('command:name', ['parameter' => 'value']);
-     * ```
-     * Use 3rd parameter to pass in custom `OutputInterface`
-     *
-     * @param string $command
-     * @param array $parameters
-     * @param OutputInterface|null $output
-     * @return string|void
-     */
-    public function callArtisan(string $command, $parameters = [], OutputInterface $output = null)
-    {
-        $console = $this->app->make(Kernel::class);
-        if (!$output) {
-            $console->call($command, $parameters);
-            $output = trim($console->output());
-            $this->debug($output);
-            return $output;
-        }
-
-        $console->call($command, $parameters, $output);
     }
 
     /**
