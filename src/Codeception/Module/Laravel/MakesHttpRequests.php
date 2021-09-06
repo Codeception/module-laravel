@@ -20,4 +20,19 @@ trait MakesHttpRequests
     {
         $this->client->disableMiddleware($middleware);
     }
+
+    /**
+     * Enable the given middleware for the test.
+     *
+     * ```php
+     * <?php
+     * $I->enableMiddleware();
+     * ```
+     *
+     * @param  string|array|null  $middleware
+     */
+    public function enableMiddleware($middleware = null): void
+    {
+        $this->client->enableMiddleware($middleware);
+    }
 }
