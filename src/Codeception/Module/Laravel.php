@@ -16,6 +16,7 @@ use Codeception\Module\Laravel\InteractsWithConsole;
 use Codeception\Module\Laravel\InteractsWithContainer;
 use Codeception\Module\Laravel\InteractsWithEloquent;
 use Codeception\Module\Laravel\InteractsWithEvents;
+use Codeception\Module\Laravel\InteractsWithExceptionHandling;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
@@ -132,6 +133,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     use InteractsWithContainer;
     use InteractsWithEloquent;
     use InteractsWithEvents;
+    use InteractsWithExceptionHandling;
 
     /**
      * @var Application
@@ -291,32 +293,6 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     {
         $handler = new ErrorHandler();
         set_error_handler([$handler, 'errorHandler']);
-    }
-
-    /**
-     * Enable Laravel exception handling.
-     *
-     * ```php
-     * <?php
-     * $I->enableExceptionHandling();
-     * ```
-     */
-    public function enableExceptionHandling()
-    {
-        $this->client->enableExceptionHandling();
-    }
-
-    /**
-     * Disable Laravel exception handling.
-     *
-     * ```php
-     * <?php
-     * $I->disableExceptionHandling();
-     * ```
-     */
-    public function disableExceptionHandling()
-    {
-        $this->client->disableExceptionHandling();
     }
 
     /**
