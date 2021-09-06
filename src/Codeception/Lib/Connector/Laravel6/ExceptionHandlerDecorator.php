@@ -36,7 +36,6 @@ class ExceptionHandlerDecorator implements ExceptionHandlerContract
     /**
      * Report or log an exception.
      *
-     * @param Exception $e
      * @throws Exception
      */
     public function report(Exception $e): void
@@ -46,9 +45,6 @@ class ExceptionHandlerDecorator implements ExceptionHandlerContract
 
     /**
      * Determine if the exception should be reported.
-     *
-     * @param Exception $e
-     * @return bool
      */
     public function shouldReport(Exception $e): bool
     {
@@ -59,8 +55,6 @@ class ExceptionHandlerDecorator implements ExceptionHandlerContract
      * Render an exception into an HTTP response.
      *
      * @param Request $request
-     * @param Exception $e
-     * @return Response
      * @throws Exception
      */
     public function render($request, Exception $e): Response
@@ -79,9 +73,6 @@ class ExceptionHandlerDecorator implements ExceptionHandlerContract
 
     /**
      * Check if the response content is HTML output of the Symfony exception handler class.
-     *
-     * @param string $content
-     * @return bool
      */
     private function isSymfonyExceptionHandlerOutput(string $content): bool
     {
@@ -93,7 +84,6 @@ class ExceptionHandlerDecorator implements ExceptionHandlerContract
      * Render an exception to the console.
      *
      * @param OutputInterface $output
-     * @param Exception $e
      */
     public function renderForConsole($output, Exception $e): void
     {
@@ -102,8 +92,6 @@ class ExceptionHandlerDecorator implements ExceptionHandlerContract
 
     /**
      * @param string|callable $method
-     * @param array $args
-     * @return mixed
      */
     public function __call($method, array $args)
     {
