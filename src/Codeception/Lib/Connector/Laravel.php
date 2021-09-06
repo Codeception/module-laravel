@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Lib\Connector;
 
+use Closure;
 use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
 use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
 use Codeception\Module\Laravel\ServicesTrait;
@@ -261,76 +262,6 @@ class Laravel extends Client
         return $segments[0];
     }
 
-    //======================================================================
-    // Public methods called by module
-    //======================================================================
-
-    /**
-     * Did an event trigger?
-     *
-     * @param $event
-     * @return bool
-     */
-    public function eventTriggered($event): bool
-    {
-        $event = $this->normalizeEvent($event);
-
-        foreach ($this->triggeredEvents as $triggeredEvent) {
-            if ($event == $triggeredEvent || is_subclass_of($event, $triggeredEvent)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Disable Laravel exception handling.
-     */
-    public function disableExceptionHandling(): void
-    {
-        $this->exceptionHandlingDisabled = true;
-        $this->app[ExceptionHandler::class]->exceptionHandlingDisabled(true);
-    }
-
-    /**
-     * Enable Laravel exception handling.
-     */
-    public function enableExceptionHandling(): void
-    {
-        $this->exceptionHandlingDisabled = false;
-        $this->app[ExceptionHandler::class]->exceptionHandlingDisabled(false);
-    }
-
-    /**
-     * Disable events.
-     *
-     * @throws Exception
-     */
-    public function disableEvents(): void
-    {
-        $this->eventsDisabled = true;
-        $this->mockEventDispatcher();
-    }
-
-    /**
-     * Disable model events.
-     */
-    public function disableModelEvents(): void
-    {
-        $this->modelEventsDisabled = true;
-        Model::unsetEventDispatcher();
-    }
-
-    /*
-     * Disable middleware.
-     */
-    public function disableMiddleware(): void
-    {
-        $this->middlewareDisabled = true;
-        $this->app->instance('middleware.disable', true);
-    }
-
     /**
      * Apply the registered application handlers.
      */
@@ -402,5 +333,118 @@ class Laravel extends Client
         }
 
         return $filtered;
+    }
+
+    // Public methods called by module
+
+    public function clearApplicationHandlers(): void
+    {
+        $this->applicationHandlers = [];
+    }
+
+    public function disableEvents(): void
+    {
+        $this->eventsDisabled = true;
+        $this->mockEventDispatcher();
+    }
+
+    public function disableExceptionHandling(): void
+    {
+        $this->exceptionHandlingDisabled = true;
+        $this->getExceptionHandler()->exceptionHandlingDisabled(true);
+    }
+
+    public function disableMiddleware($middleware = null): void
+    {
+        if (is_null($middleware)) {
+            $this->middlewareDisabled = true;
+
+            $this->app->instance('middleware.disable', true);
+            return;
+        }
+
+        foreach ((array) $middleware as $abstract) {
+            $this->app->instance($abstract, new class
+            {
+                public function handle($request, $next)
+                {
+                    return $next($request);
+                }
+            });
+        }
+    }
+
+    public function disableModelEvents(): void
+    {
+        $this->modelEventsDisabled = true;
+        Model::unsetEventDispatcher();
+    }
+
+    public function enableExceptionHandling(): void
+    {
+        $this->exceptionHandlingDisabled = false;
+        $this->getExceptionHandler()->exceptionHandlingDisabled(false);
+    }
+
+    public function enableMiddleware($middleware = null): void
+    {
+        if (is_null($middleware)) {
+            $this->middlewareDisabled = false;
+
+            unset($this->app['middleware.disable']);
+            return;
+        }
+
+        foreach ((array) $middleware as $abstract) {
+            unset($this->app[$abstract]);
+        }
+    }
+
+    /**
+     * Did an event trigger?
+     *
+     * @param object|string $event
+     */
+    public function eventTriggered($event): bool
+    {
+        $event = $this->normalizeEvent($event);
+
+        foreach ($this->triggeredEvents as $triggeredEvent) {
+            if ($event == $triggeredEvent || is_subclass_of($event, $triggeredEvent)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function haveApplicationHandler(callable $handler): void
+    {
+        $this->applicationHandlers[] = $handler;
+    }
+
+    /**
+     * @param Closure|string|null $concrete
+     */
+    public function haveBinding(string $abstract, $concrete, bool $shared = false): void
+    {
+        $this->bindings[$abstract] = [$concrete, $shared];
+    }
+
+    /**
+     * @param Closure|string $implementation
+     */
+    public function haveContextualBinding(string $concrete, string $abstract, $implementation): void
+    {
+        if (! isset($this->contextualBindings[$concrete])) {
+            $this->contextualBindings[$concrete] = [];
+        }
+
+        $this->contextualBindings[$concrete][$abstract] = $implementation;
+    }
+
+    public function haveInstance(string $abstract, object $instance): void
+    {
+        $this->instances[$abstract] = $instance;
     }
 }
