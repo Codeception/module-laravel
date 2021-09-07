@@ -7,6 +7,18 @@ namespace Codeception\Module\Laravel;
 trait InteractsWithSession
 {
     /**
+     * Set the session to the given array.
+     */
+    public function haveInSession(array $data): void
+    {
+        $this->startSession();
+
+        foreach ($data as $key => $value) {
+            $this->getSession()->put($key, $value);
+        }
+    }
+
+    /**
      * Assert that a session variable exists.
      *
      * ```php
@@ -53,6 +65,25 @@ trait InteractsWithSession
             } else {
                 $this->seeInSession($key, $value);
             }
+        }
+    }
+
+    /**
+     * Flush all of the current session data.
+     */
+    public function flushSession(): void
+    {
+        $this->startSession();
+        $this->getSession()->flush();
+    }
+
+    /**
+     * Start the session for the application.
+     */
+    protected function startSession(): void
+    {
+        if (! $this->getSession()->isStarted()) {
+            $this->getSession()->start();
         }
     }
 }
