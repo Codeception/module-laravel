@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Symfony\Component\Console\Output\OutputInterface;
 
 trait InteractsWithConsole
@@ -31,5 +32,13 @@ trait InteractsWithConsole
         }
 
         $console->call($command, $parameters, $output);
+    }
+
+    /**
+     * @return \Illuminate\Foundation\Console\Kernel
+     */
+    protected function getConsoleKernel(): ?ConsoleKernel
+    {
+        return $this->app[ConsoleKernel::class] ?? null;
     }
 }

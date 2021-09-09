@@ -7,12 +7,15 @@ namespace Codeception\Lib\Connector;
 use Closure;
 use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
 use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
-use Codeception\Module\Laravel\ServicesTrait;
 use Codeception\Stub;
 use Exception;
+use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Foundation\Application as AppContract;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
+use Illuminate\Database\ConnectionResolverInterface as Db;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\RegisterProviders;
@@ -24,8 +27,6 @@ use Symfony\Component\HttpKernel\HttpKernelBrowser as Client;
 
 class Laravel extends Client
 {
-    use ServicesTrait;
-
     /**
      * @var array
      */
@@ -446,5 +447,45 @@ class Laravel extends Client
     public function haveInstance(string $abstract, object $instance): void
     {
         $this->instances[$abstract] = $instance;
+    }
+
+    /**
+     * @return \Illuminate\Config\Repository
+     */
+    public function getConfig(): ?Config
+    {
+        return $this->app['config'] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Database\DatabaseManager
+     */
+    public function getDb(): ?Db
+    {
+        return $this->app['db'] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Events\Dispatcher
+     */
+    public function getEvents(): ?Events
+    {
+        return $this->app['events'] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Foundation\Exceptions\Handler
+     */
+    public function getExceptionHandler(): ?ExceptionHandler
+    {
+        return $this->app[ExceptionHandler::class] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Foundation\Http\Kernel
+     */
+    public function getHttpKernel(): ?HttpKernel
+    {
+        return $this->app[HttpKernel::class] ?? null;
     }
 }

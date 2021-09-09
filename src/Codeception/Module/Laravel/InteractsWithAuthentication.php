@@ -6,9 +6,24 @@ namespace Codeception\Module\Laravel;
 
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Factory as Auth;
 
 trait InteractsWithAuthentication
 {
+    /**
+     * Set the given user object to the current or specified Guard.
+     */
+    public function amActingAs(Authenticatable $user, string $guardName = null): void
+    {
+        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
+            $user->wasRecentlyCreated = false;
+        }
+
+        $this->getAuth()->guard($guardName)->setUser($user);
+
+        $this->getAuth()->shouldUse($guardName);
+    }
+
     /**
      * Set the currently logged in user for the application.
      * Unlike 'amActingAs', this method does update the session, fire the login events
@@ -39,20 +54,6 @@ trait InteractsWithAuthentication
             $guard->attempt($user)
             , 'Failed to login with credentials ' . json_encode($user)
         );
-    }
-
-    /**
-     * Set the given user object to the current or specified Guard.
-     */
-    public function amActingAs(Authenticatable $user, string $guardName = null): void
-    {
-        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
-            $user->wasRecentlyCreated = false;
-        }
-
-        $this->getAuth()->guard($guardName)->setUser($user);
-
-        $this->getAuth()->shouldUse($guardName);
     }
 
     /**
@@ -104,19 +105,19 @@ trait InteractsWithAuthentication
     }
 
     /**
-     * Checks that a user is authenticated.
-     */
-    public function seeAuthentication(string $guardName = null): void
-    {
-        $this->assertTrue($this->isAuthenticated($guardName), 'The user is not authenticated');
-    }
-
-    /**
      * Logout user.
      */
     public function logout(): void
     {
         $this->getAuth()->logout();
+    }
+
+    /**
+     * Checks that a user is authenticated.
+     */
+    public function seeAuthentication(string $guardName = null): void
+    {
+        $this->assertTrue($this->isAuthenticated($guardName), 'The user is not authenticated');
     }
 
     /**
@@ -139,5 +140,13 @@ trait InteractsWithAuthentication
     protected function isAuthenticated(?string $guardName): bool
     {
         return $this->getAuth()->guard($guardName)->check();
+    }
+
+    /**
+     * @return \Illuminate\Auth\AuthManager|\Illuminate\Contracts\Auth\StatefulGuard
+     */
+    protected function getAuth(): ?Auth
+    {
+        return $this->app['auth'] ?? null;
     }
 }
