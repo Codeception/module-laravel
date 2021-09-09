@@ -7,6 +7,15 @@ namespace Codeception\Module\Laravel;
 trait InteractsWithSession
 {
     /**
+     * Flush all of the current session data.
+     */
+    public function flushSession(): void
+    {
+        $this->startSession();
+        $this->getSession()->flush();
+    }
+
+    /**
      * Set the session to the given array.
      */
     public function haveInSession(array $data): void
@@ -66,15 +75,6 @@ trait InteractsWithSession
                 $this->seeInSession($key, $value);
             }
         }
-    }
-
-    /**
-     * Flush all of the current session data.
-     */
-    public function flushSession(): void
-    {
-        $this->startSession();
-        $this->getSession()->flush();
     }
 
     /**

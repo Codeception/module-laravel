@@ -11,6 +11,20 @@ use Illuminate\Contracts\Auth\Factory as Auth;
 trait InteractsWithAuthentication
 {
     /**
+     * Set the given user object to the current or specified Guard.
+     */
+    public function amActingAs(Authenticatable $user, string $guardName = null): void
+    {
+        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
+            $user->wasRecentlyCreated = false;
+        }
+
+        $this->getAuth()->guard($guardName)->setUser($user);
+
+        $this->getAuth()->shouldUse($guardName);
+    }
+
+    /**
      * Set the currently logged in user for the application.
      * Unlike 'amActingAs', this method does update the session, fire the login events
      * and remember the user as it assigns the corresponding Cookie.
@@ -40,20 +54,6 @@ trait InteractsWithAuthentication
             $guard->attempt($user)
             , 'Failed to login with credentials ' . json_encode($user)
         );
-    }
-
-    /**
-     * Set the given user object to the current or specified Guard.
-     */
-    public function amActingAs(Authenticatable $user, string $guardName = null): void
-    {
-        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
-            $user->wasRecentlyCreated = false;
-        }
-
-        $this->getAuth()->guard($guardName)->setUser($user);
-
-        $this->getAuth()->shouldUse($guardName);
     }
 
     /**
@@ -105,19 +105,19 @@ trait InteractsWithAuthentication
     }
 
     /**
-     * Checks that a user is authenticated.
-     */
-    public function seeAuthentication(string $guardName = null): void
-    {
-        $this->assertTrue($this->isAuthenticated($guardName), 'The user is not authenticated');
-    }
-
-    /**
      * Logout user.
      */
     public function logout(): void
     {
         $this->getAuth()->logout();
+    }
+
+    /**
+     * Checks that a user is authenticated.
+     */
+    public function seeAuthentication(string $guardName = null): void
+    {
+        $this->assertTrue($this->isAuthenticated($guardName), 'The user is not authenticated');
     }
 
     /**
