@@ -249,7 +249,7 @@ trait InteractsWithEloquent
      *
      * @param class-string|class-string[] $seeders
      */
-    public function seedDatabase($seeders = 'Database\\Seeders\\DatabaseSeeder'): void
+    public function seedDatabase($seeders): void
     {
         foreach (Arr::wrap($seeders) as $seeder) {
             $this->callArtisan('db:seed', ['--class' => $seeder, '--no-interaction' => true]);
