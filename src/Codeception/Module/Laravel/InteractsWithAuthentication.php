@@ -6,6 +6,7 @@ namespace Codeception\Module\Laravel;
 
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Factory as Auth;
 
 trait InteractsWithAuthentication
 {
@@ -139,5 +140,13 @@ trait InteractsWithAuthentication
     protected function isAuthenticated(?string $guardName): bool
     {
         return $this->getAuth()->guard($guardName)->check();
+    }
+
+    /**
+     * @return \Illuminate\Auth\AuthManager|\Illuminate\Contracts\Auth\StatefulGuard
+     */
+    protected function getAuth(): ?Auth
+    {
+        return $this->app['auth'] ?? null;
     }
 }

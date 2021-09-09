@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
+use Illuminate\Contracts\View\Factory as View;
 use Illuminate\Support\ViewErrorBag;
 
 trait InteractsWithViews
@@ -112,5 +113,13 @@ trait InteractsWithViews
     protected function getViewErrorBag(): ViewErrorBag
     {
         return $this->getView()->shared('errors');
+    }
+
+    /**
+     * @return \Illuminate\View\Factory
+     */
+    protected function getView(): ?View
+    {
+        return $this->app['view'] ?? null;
     }
 }

@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
+use Illuminate\Contracts\Routing\Registrar as Router;
+use Illuminate\Contracts\Routing\UrlGenerator as Url;
 use Illuminate\Routing\Route;
 use ReflectionClass;
 use ReflectionException;
+use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 trait InteractsWithRouting
 {
@@ -157,5 +160,37 @@ trait InteractsWithRouting
         }
 
         return trim($action, '\\');
+    }
+
+    /**
+     * @return \Illuminate\Routing\UrlGenerator
+     */
+    protected function getUrlGenerator(): ?Url
+    {
+        return $this->app['url'] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Http\Request
+     */
+    protected function getRequestObject(): ?SymfonyRequest
+    {
+        return $this->app['request'] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Routing\Router
+     */
+    protected function getRouter(): ?Router
+    {
+        return $this->app['router'] ?? null;
+    }
+
+    /**
+     * @return \Illuminate\Routing\RouteCollectionInterface|\Illuminate\Routing\RouteCollection
+     */
+    protected function getRoutes()
+    {
+        return $this->app['routes'] ?? null;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Codeception\Module\Laravel;
 
+use Illuminate\Database\ConnectionResolverInterface as Db;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\Factory as EloquentFactory;
@@ -389,5 +390,13 @@ trait InteractsWithEloquent
     private function getQueryBuilderFromTable(string $table): Builder
     {
         return $this->getDb()->table($table);
+    }
+
+    /**
+     * @return \Illuminate\Database\DatabaseManager
+     */
+    protected function getDb(): ?Db
+    {
+        return $this->app['db'] ?? null;
     }
 }

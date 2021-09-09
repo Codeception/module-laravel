@@ -21,10 +21,10 @@ use Codeception\Module\Laravel\InteractsWithRouting;
 use Codeception\Module\Laravel\InteractsWithSession;
 use Codeception\Module\Laravel\InteractsWithViews;
 use Codeception\Module\Laravel\MakesHttpRequests;
-use Codeception\Module\Laravel\ServicesTrait;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
+use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Application;
@@ -136,7 +136,6 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     use InteractsWithSession;
     use InteractsWithViews;
     use MakesHttpRequests;
-    use ServicesTrait;
 
     /**
      * @var Application
@@ -277,6 +276,14 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
         }
 
         return array_unique($internalDomains);
+    }
+
+    /**
+     * @return \Illuminate\Config\Repository
+     */
+    protected function getConfig(): ?Config
+    {
+        return $this->app['config'] ?? null;
     }
 
     /**

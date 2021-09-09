@@ -86,4 +86,12 @@ trait InteractsWithSession
             $this->getSession()->start();
         }
     }
+
+    /**
+     * @return \Illuminate\Contracts\Session\Session|\Illuminate\Session\SessionManager
+     */
+    protected function getSession()
+    {
+        return $this->app['session'] ?? null;
+    }
 }
