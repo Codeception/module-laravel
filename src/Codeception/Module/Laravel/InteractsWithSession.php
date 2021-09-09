@@ -7,6 +7,57 @@ namespace Codeception\Module\Laravel;
 trait InteractsWithSession
 {
     /**
+     * Assert that a session attribute does not exist, or is not equal to the passed value.
+     *
+     * ```php
+     * <?php
+     * $I->dontSeeInSession('attribute');
+     * $I->dontSeeInSession('attribute', 'value');
+     * ```
+     *
+     * @param string|array $key
+     * @param mixed|null $value
+     */
+    public function dontSeeInSession($key, $value = null): void
+    {
+        if (is_array($key)) {
+            $this->dontSeeSessionHasValues($key);
+            return;
+        }
+
+        $session = $this->getSession();
+
+        if (null === $value) {
+            if ($session->has($key)) {
+                $this->fail("Session variable with key '{$key}' does exist");
+            }
+        }
+        else {
+            $this->assertNotSame($value, $session->get($key));
+        }
+    }
+
+    /**
+     * Assert that the session does not have a particular list of values.
+     *
+     * ```php
+     * <?php
+     * $I->dontSeeSessionHasValues(['key1', 'key2']);
+     * $I->dontSeeSessionHasValues(['key1' => 'value1', 'key2' => 'value2']);
+     * ```
+     */
+    public function dontSeeSessionHasValues(array $bindings): void
+    {
+        foreach ($bindings as $key => $value) {
+            if (is_int($key)) {
+                $this->dontSeeInSession($value);
+            } else {
+                $this->dontSeeInSession($key, $value);
+            }
+        }
+    }
+
+    /**
      * Flush all of the current session data.
      */
     public function flushSession(): void
