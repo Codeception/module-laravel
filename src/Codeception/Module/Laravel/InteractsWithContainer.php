@@ -23,6 +23,11 @@ trait InteractsWithContainer
 
     /**
      * Provides access the Laravel application object.
+     *
+     * ```php
+     * <?php
+     * $app = $I->getApplication();
+     * ```
      */
     public function getApplication(): Application
     {

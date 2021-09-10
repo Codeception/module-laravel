@@ -59,6 +59,11 @@ trait InteractsWithSession
 
     /**
      * Flush all of the current session data.
+     *
+     * ```php
+     * <?php
+     * $I->flushSession();
+     * ```
      */
     public function flushSession(): void
     {
@@ -68,6 +73,11 @@ trait InteractsWithSession
 
     /**
      * Set the session to the given array.
+     *
+     * ```php
+     * <?php
+     * $I->haveInSession(['myKey' => 'MyValue']);
+     * ```
      */
     public function haveInSession(array $data): void
     {
