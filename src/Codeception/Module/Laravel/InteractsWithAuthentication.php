@@ -12,6 +12,11 @@ trait InteractsWithAuthentication
 {
     /**
      * Set the given user object to the current or specified Guard.
+     *
+     * ```php
+     * <?php
+     * $I->amActingAs($user);
+     * ```
      */
     public function amActingAs(Authenticatable $user, string $guardName = null): void
     {
@@ -58,6 +63,11 @@ trait InteractsWithAuthentication
 
     /**
      * Assert that the user is authenticated as the given user.
+     *
+     * ```php
+     * <?php
+     * $I->assertAuthenticatedAs($user);
+     * ```
      */
     public function assertAuthenticatedAs(Authenticatable $user, string $guardName = null): void
     {
@@ -78,6 +88,14 @@ trait InteractsWithAuthentication
 
     /**
      * Assert that the given credentials are valid.
+     *
+     * ```php
+     * <?php
+     * $I->assertCredentials([
+     *     'email' => 'john_doe@gmail.com',
+     *     'password' => '123456'
+     * ]);
+     * ```
      */
     public function assertCredentials(array $credentials, string $guardName = null): void
     {
@@ -88,6 +106,14 @@ trait InteractsWithAuthentication
 
     /**
      * Assert that the given credentials are invalid.
+     *
+     * ```php
+     * <?php
+     * $I->assertInvalidCredentials([
+     *     'email' => 'john_doe@gmail.com',
+     *     'password' => 'wrong_password'
+     * ]);
+     * ```
      */
     public function assertInvalidCredentials(array $credentials, string $guardName = null): void
     {
@@ -98,6 +124,11 @@ trait InteractsWithAuthentication
 
     /**
      * Check that user is not authenticated.
+     *
+     * ```php
+     * <?php
+     * $I->dontSeeAuthentication();
+     * ```
      */
     public function dontSeeAuthentication(string $guardName = null): void
     {
@@ -106,6 +137,11 @@ trait InteractsWithAuthentication
 
     /**
      * Logout user.
+     *
+     * ```php
+     * <?php
+     * $I->logout();
+     * ```
      */
     public function logout(): void
     {
@@ -114,6 +150,11 @@ trait InteractsWithAuthentication
 
     /**
      * Checks that a user is authenticated.
+     *
+     * ```php
+     * <?php
+     * $I->seeAuthentication();
+     * ```
      */
     public function seeAuthentication(string $guardName = null): void
     {

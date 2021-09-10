@@ -22,14 +22,14 @@ trait MakesHttpRequests
     }
 
     /**
-     * Enable the given middleware for the test.
+     * Enable the given middleware for the next requests.
      *
      * ```php
      * <?php
      * $I->enableMiddleware();
      * ```
      *
-     * @param  string|array|null  $middleware
+     * @param string|array|null $middleware
      */
     public function enableMiddleware($middleware = null): void
     {
