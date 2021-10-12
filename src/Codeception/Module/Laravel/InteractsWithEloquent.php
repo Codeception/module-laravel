@@ -192,7 +192,7 @@ trait InteractsWithEloquent
             $table = $this->getDb()->table($table);
             return $table->insertGetId($attributes);
         } catch (Throwable $t) {
-            $this->fail("Could not insert record into table '$table':\n\n" . $t->getMessage());
+            $this->fail("Could not insert record into table '{$table}':\n\n" . $t->getMessage());
         }
     }
 
@@ -373,6 +373,7 @@ trait InteractsWithEloquent
                 $query->where($key, $value);
             }
         }
+
         return $query;
     }
 

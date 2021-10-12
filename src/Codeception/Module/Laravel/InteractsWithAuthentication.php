@@ -20,7 +20,7 @@ trait InteractsWithAuthentication
      */
     public function amActingAs(Authenticatable $user, string $guardName = null): void
     {
-        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
+        if (property_exists($user, 'wasRecentlyCreated') && $user->wasRecentlyCreated) {
             $user->wasRecentlyCreated = false;
         }
 
