@@ -20,7 +20,7 @@ trait InteractsWithAuthentication
      */
     public function amActingAs(Authenticatable $user, string $guardName = null): void
     {
-        if (isset($user->wasRecentlyCreated) && $user->wasRecentlyCreated) {
+        if (property_exists($user, 'wasRecentlyCreated') && $user->wasRecentlyCreated) {
             $user->wasRecentlyCreated = false;
         }
 
@@ -57,7 +57,7 @@ trait InteractsWithAuthentication
         $guard = $this->getAuth()->guard($guardName);
         $this->assertTrue(
             $guard->attempt($user)
-            , 'Failed to login with credentials ' . json_encode($user)
+            , 'Failed to login with credentials ' . json_encode($user, JSON_THROW_ON_ERROR)
         );
     }
 

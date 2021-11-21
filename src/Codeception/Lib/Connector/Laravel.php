@@ -7,6 +7,7 @@ namespace Codeception\Lib\Connector;
 use Closure;
 use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
 use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
+use Codeception\Module\Laravel as LaravelModule;
 use Codeception\Stub;
 use Exception;
 use Illuminate\Contracts\Config\Repository as Config;
@@ -27,75 +28,42 @@ use Symfony\Component\HttpKernel\HttpKernelBrowser as Client;
 
 class Laravel extends Client
 {
-    /**
-     * @var array
-     */
-    private $bindings = [];
+    private array $bindings = [];
 
-    /**
-     * @var array
-     */
-    private $contextualBindings = [];
+    private array $contextualBindings = [];
 
     /**
      * @var object[]
      */
-    private $instances = [];
+    private array $instances = [];
 
     /**
      * @var callable[]
      */
-    private $applicationHandlers = [];
+    private array $applicationHandlers = [];
 
-    /**
-     * @var Application
-     */
-    private $app;
+    private ?AppContract $app = null;
 
-    /**
-     * @var \Codeception\Module\Laravel
-     */
-    private $module;
+    private LaravelModule $module;
 
-    /**
-     * @var bool
-     */
-    private $firstRequest = true;
+    private bool $firstRequest = true;
 
-    /**
-     * @var array
-     */
-    private $triggeredEvents = [];
+    private array $triggeredEvents = [];
 
-    /**
-     * @var bool
-     */
-    private $exceptionHandlingDisabled;
+    private bool $exceptionHandlingDisabled;
 
-    /**
-     * @var bool
-     */
-    private $middlewareDisabled;
+    private bool $middlewareDisabled;
 
-    /**
-     * @var bool
-     */
-    private $eventsDisabled;
+    private bool $eventsDisabled;
 
-    /**
-     * @var bool
-     */
-    private $modelEventsDisabled;
+    private bool $modelEventsDisabled;
 
-    /**
-     * @var object
-     */
-    private $oldDb;
+    private ?object $oldDb = null;
 
     /**
      * Constructor.
      *
-     * @param \Codeception\Module\Laravel $module
+     * @param LaravelModule $module
      * @throws Exception
      */
     public function __construct($module)
@@ -113,6 +81,7 @@ class Laravel extends Client
         if (array_key_exists('url', $this->module->config)) {
             $components = parse_url($this->module->config['url']);
         }
+
         $host = $components['host'] ?? 'localhost';
 
         parent::__construct($this->app, ['HTTP_HOST' => $host]);
@@ -132,6 +101,7 @@ class Laravel extends Client
         if (!$this->firstRequest) {
             $this->initialize($request);
         }
+
         $this->firstRequest = false;
 
         $this->applyBindings();
@@ -157,27 +127,27 @@ class Laravel extends Client
             $this->oldDb = $db;
         }
 
-        $this->app = $this->kernel = $this->loadApplication();
+        $this->app = $this->loadApplication();
+        $this->kernel = $this->app;
 
         // Set the request instance for the application,
         if (is_null($request)) {
             $appConfig = require $this->module->config['project_dir'] . 'config/app.php';
             $request = SymfonyRequest::create($appConfig['url']);
         }
+
         $this->app->instance('request', Request::createFromBase($request));
 
         // Reset the old database after all the service providers are registered.
         if ($this->oldDb) {
-            $this->getEvents()->listen('bootstrapped: ' . RegisterProviders::class, function () {
-                $this->app->singleton('db', function () {
-                    return $this->oldDb;
-                });
+            $this->getEvents()->listen('bootstrapped: ' . RegisterProviders::class, function (): void {
+                $this->app->singleton('db', fn(): object => $this->oldDb);
             });
         }
 
         $this->getHttpKernel()->bootstrap();
 
-        $listener = function ($event) {
+        $listener = function ($event): void {
             $this->triggeredEvents[] = $this->normalizeEvent($event);
         };
 
@@ -230,7 +200,7 @@ class Laravel extends Client
         // Even if events are disabled we still want to record the triggered events.
         // But by mocking the event dispatcher the wildcard listener registered in the initialize method is removed.
         // So to record the triggered events we have to catch the calls to the fire method of the event dispatcher mock.
-        $callback = function ($event) {
+        $callback = function ($event): array {
             $this->triggeredEvents[] = $this->normalizeEvent($event);
 
             return [];
@@ -253,7 +223,7 @@ class Laravel extends Client
             $event = get_class($event);
         }
 
-        if (preg_match('/^bootstrapp(ing|ed): /', $event)) {
+        if (preg_match('#^bootstrapp(ing|ed): #', $event)) {
             return $event;
         }
 

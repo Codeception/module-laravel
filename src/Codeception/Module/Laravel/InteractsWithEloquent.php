@@ -43,7 +43,7 @@ trait InteractsWithEloquent
 
         if (class_exists($table)) {
             if ($foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
-                $this->fail("Unexpectedly found matching {$table} with " . json_encode($attributes));
+                $this->fail("Unexpectedly found matching {$table} with " . json_encode($attributes, JSON_THROW_ON_ERROR));
             }
         } elseif ($foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
             $this->fail("Unexpectedly found matching record in table '{$table}'");
@@ -89,7 +89,7 @@ trait InteractsWithEloquent
     {
         if (class_exists($table)) {
             if (!$model = $this->findModel($table, $attributes)) {
-                $this->fail("Could not find {$table} with " . json_encode($attributes));
+                $this->fail("Could not find {$table} with " . json_encode($attributes, JSON_THROW_ON_ERROR));
             }
 
             return $model;
@@ -192,7 +192,7 @@ trait InteractsWithEloquent
             $table = $this->getDb()->table($table);
             return $table->insertGetId($attributes);
         } catch (Throwable $t) {
-            $this->fail("Could not insert record into table '$table':\n\n" . $t->getMessage());
+            $this->fail("Could not insert record into table '{$table}':\n\n" . $t->getMessage());
         }
     }
 
@@ -275,14 +275,14 @@ trait InteractsWithEloquent
             $this->assertSame(
                 $expectedNum,
                 $currentNum,
-                "The number of found {$table} ({$currentNum}) does not match expected number {$expectedNum} with " . json_encode($attributes)
+                "The number of found {$table} ({$currentNum}) does not match expected number {$expectedNum} with " . json_encode($attributes, JSON_THROW_ON_ERROR)
             );
         } else {
             $currentNum = $this->countRecords($table, $attributes);
             $this->assertSame(
                 $expectedNum,
                 $currentNum,
-                "The number of found records in table {$table} ({$currentNum}) does not match expected number $expectedNum with " . json_encode($attributes)
+                "The number of found records in table {$table} ({$currentNum}) does not match expected number $expectedNum with " . json_encode($attributes, JSON_THROW_ON_ERROR)
             );
         }
     }
@@ -310,7 +310,7 @@ trait InteractsWithEloquent
 
         if (class_exists($table)) {
             if (!$foundMatchingRecord = (bool)$this->findModel($table, $attributes)) {
-                $this->fail("Could not find {$table} with " . json_encode($attributes));
+                $this->fail("Could not find {$table} with " . json_encode($attributes, JSON_THROW_ON_ERROR));
             }
         } elseif (!$foundMatchingRecord = (bool)$this->findRecord($table, $attributes)) {
             $this->fail("Could not find matching record in table '{$table}'");
@@ -373,6 +373,7 @@ trait InteractsWithEloquent
                 $query->where($key, $value);
             }
         }
+
         return $query;
     }
 

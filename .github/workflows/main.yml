@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        php: [7.3, 7.4, 8.0]
+        php: [7.4, 8.0]
         laravel: [6, 8]
 
     steps:
@@ -74,6 +74,4 @@ jobs:
         working-directory: framework-tests
 
       - name: Run test suite
-        run: |
-          php vendor/bin/codecept build -c framework-tests
-          php vendor/bin/codecept run Functional -c framework-tests
+        run: php vendor/bin/codecept run Functional -c framework-tests

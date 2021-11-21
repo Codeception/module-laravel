@@ -83,7 +83,7 @@ trait InteractsWithRouting
             '\\'
         );
 
-        if ($currentAction != $action) {
+        if ($currentAction !== $action) {
             $this->fail("Current action is '{$currentAction}'");
         }
     }

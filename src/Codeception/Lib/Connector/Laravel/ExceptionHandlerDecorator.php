@@ -13,19 +13,13 @@ use function strpos;
 
 class ExceptionHandlerDecorator implements ExceptionHandlerContract
 {
-    /**
-     * @var ExceptionHandlerContract
-     */
-    private $laravelExceptionHandler;
+    private ExceptionHandlerContract $laravelExceptionHandler;
 
-    /**
-     * @var bool
-     */
-    private $exceptionHandlingDisabled = true;
+    private bool $exceptionHandlingDisabled = true;
 
-    public function __construct(object $laravelExceptionHandler)
+    public function __construct(ExceptionHandlerContract $exceptionHandler)
     {
-        $this->laravelExceptionHandler = $laravelExceptionHandler;
+        $this->laravelExceptionHandler = $exceptionHandler;
     }
 
     public function exceptionHandlingDisabled(bool $exceptionHandlingDisabled): void
