@@ -57,7 +57,7 @@ trait InteractsWithAuthentication
         $guard = $this->getAuth()->guard($guardName);
         $this->assertTrue(
             $guard->attempt($user)
-            , 'Failed to login with credentials ' . json_encode($user)
+            , 'Failed to login with credentials ' . json_encode($user, JSON_THROW_ON_ERROR)
         );
     }
 
