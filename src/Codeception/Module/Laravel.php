@@ -25,11 +25,13 @@ use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Contracts\Foundation\Application as ApplicationContract;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Route;
 use ReflectionException;
+use Symfony\Component\BrowserKit\AbstractBrowser;
 use Symfony\Component\Routing\CompiledRoute as SymfonyCompiledRoute;
 use Throwable;
 
@@ -140,12 +142,12 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * @var Application
      */
-    public $app;
+    public ApplicationContract $app;
 
     /**
      * @var LaravelConnector
      */
-    public $client;
+    public ?AbstractBrowser $client;
 
     /**
      * @var array
