@@ -17,16 +17,16 @@
             "homepage": "https://medium.com/@ganieves"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "RC",
     "require": {
         "php": "^8.0",
         "ext-json": "*",
-        "codeception/lib-innerbrowser": "^3.0",
-        "codeception/codeception": "^5.0.0-alpha2"
+        "codeception/lib-innerbrowser": "^3.1",
+        "codeception/codeception": "^5.0.0-RC2"
     },
     "require-dev": {
-        "codeception/module-asserts": "^2.0 | *@dev",
-        "codeception/module-rest": "^2.0 | *@dev",
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-rest": "^3.1",
         "laravel/framework": "^6.0 | ^7.0 | ^8.0 | ^9.0",
         "vlucas/phpdotenv": "^3.6 | ^4.2 | ^5.3"
     },
