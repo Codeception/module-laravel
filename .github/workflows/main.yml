@@ -8,8 +8,8 @@ jobs:
 
     strategy:
       matrix:
-        php: [7.4, 8.0]
-        laravel: [6, 8]
+        php: [8.0, 8.1]
+        laravel: [8]
 
     steps:
       - name: Checkout code
@@ -22,14 +22,6 @@ jobs:
           tools: composer:v2
           extensions: ctype, iconv, intl, json, mbstring, pdo, pdo_sqlite
           coverage: none
-
-      - name: Checkout Laravel 6 Sample
-        if: matrix.laravel == 6
-        uses: actions/checkout@v2
-        with:
-          repository: codeception/laravel-module-tests
-          path: framework-tests
-          ref: 6.x
 
       - name: Checkout Laravel 8 Sample
         if: matrix.laravel == 8
@@ -51,9 +43,7 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.php }}-composer-
 
       - name: Install dependencies
-        run: |
-          composer require laravel/framework=${{ matrix.laravel }} --ignore-platform-req=php --no-update
-          composer install --prefer-dist --no-progress --ignore-platform-req=php
+        run: composer install --prefer-dist --no-progress
 
       - name: Validate composer.json and composer.lock
         run: composer validate

@@ -152,7 +152,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * @var array
      */
-    public $config = [];
+    public array $config = [];
 
     public function __construct(ModuleContainer $moduleContainer, ?array $config = null)
     {

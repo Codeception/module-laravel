@@ -19,16 +19,16 @@
     ],
     "minimum-stability": "RC",
     "require": {
-        "php": "^7.4 | ^8.0",
+        "php": "^8.0",
         "ext-json": "*",
-        "codeception/lib-innerbrowser": "^2.0",
-        "codeception/codeception": "^4.1"
+        "codeception/lib-innerbrowser": "^3.1",
+        "codeception/codeception": "^5.0.0-RC2"
     },
     "require-dev": {
-        "codeception/module-asserts": "^2.0",
-        "codeception/module-rest": "^2.0",
-        "laravel/framework": "^6.0 | ^7.0 | ^8.0",
-        "vlucas/phpdotenv": "^3.6 | ^4.1 | ^5.2"
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-rest": "^3.1",
+        "laravel/framework": "^8.0",
+        "vlucas/phpdotenv": "^5.3"
     },
     "autoload": {
         "classmap": ["src/"]
