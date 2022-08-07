@@ -147,7 +147,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
     /**
      * @var LaravelConnector
      */
-    public ?AbstractBrowser $client;
+    public ?AbstractBrowser $client = null;
 
     /**
      * @var array
