@@ -9,6 +9,7 @@ use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExcept
 use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
 use Codeception\Module\Laravel as LaravelModule;
 use Codeception\Stub;
+use Dotenv\Dotenv;
 use Exception;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -186,7 +187,10 @@ class Laravel extends Client
     {
         /** @var AppContract $app */
         $app = require $this->module->config['bootstrap_file'];
-        $app->loadEnvironmentFrom($this->module->config['environment_file']);
+        if ($this->module->config['environment_file'] !== '.env') {
+            $env = Dotenv::createMutable($app->basePath(), $this->module->config['environment_file']);
+            $env->load();
+        }
         $app->instance('request', new Request());
 
         return $app;
