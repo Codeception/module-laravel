@@ -62,6 +62,7 @@ use Throwable;
  * * disable_events: `boolean`, default `false` - disable events (does not disable model events).
  * * disable_model_events: `boolean`, default `false` - disable model events.
  * * url: `string`, default `` - the application URL.
+ * * headers: `array<string, string>` - default headers are set before each test.
  *
  * ### Example #1 (`functional.suite.yml`)
  *
@@ -172,6 +173,7 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
                 'disable_middleware' => false,
                 'disable_events' => false,
                 'disable_model_events' => false,
+                'headers' => [],
             ],
             (array)$config
         );
@@ -210,6 +212,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
      */
     public function _before(TestInterface $test)
     {
+        $this->headers = $this->config['headers'];
+
         $this->client = new LaravelConnector($this);
 
         // Database migrations should run before database cleanup transaction starts
