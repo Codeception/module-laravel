@@ -6,7 +6,6 @@ namespace Codeception\Lib\Connector;
 
 use Closure;
 use Codeception\Lib\Connector\Laravel\ExceptionHandlerDecorator as LaravelExceptionHandlerDecorator;
-use Codeception\Lib\Connector\Laravel6\ExceptionHandlerDecorator as Laravel6ExceptionHandlerDecorator;
 use Codeception\Module\Laravel as LaravelModule;
 use Codeception\Stub;
 use Dotenv\Dotenv;
@@ -154,14 +153,7 @@ class Laravel extends Client
 
         $this->getEvents()->listen('*', $listener);
 
-        // Replace the Laravel exception handler with our decorated exception handler,
-        // so exceptions can be intercepted for the disable_exception_handling functionality.
-        if (version_compare(Application::VERSION, '7.0.0', '<')) {
-            $decorator = new Laravel6ExceptionHandlerDecorator($this->getExceptionHandler());
-        } else {
-            $decorator = new LaravelExceptionHandlerDecorator($this->getExceptionHandler());
-        }
-
+        $decorator = new LaravelExceptionHandlerDecorator($this->getExceptionHandler());
         $decorator->exceptionHandlingDisabled($this->exceptionHandlingDisabled);
         $this->app->instance(ExceptionHandler::class, $decorator);
 
