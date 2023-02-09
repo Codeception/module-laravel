@@ -21,13 +21,13 @@
     "require": {
         "php": "^8.0",
         "ext-json": "*",
-        "codeception/lib-innerbrowser": "^3.1",
-        "codeception/codeception": "^5.0.0-RC2",
+        "codeception/lib-innerbrowser": "^3.1 | ^4.0",
+        "codeception/codeception": "^5.0.8",
         "vlucas/phpdotenv": "^5.3"
     },
     "require-dev": {
         "codeception/module-asserts": "^3.0",
-        "codeception/module-rest": "^3.1",
+        "codeception/module-rest": "^3.3",
         "laravel/framework": "^8.0"
     },
     "autoload": {
