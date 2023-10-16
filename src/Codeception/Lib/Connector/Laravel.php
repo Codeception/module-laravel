@@ -111,7 +111,7 @@ class Laravel extends Client
 
         $request = Request::createFromBase($request);
         $response = $this->kernel->handle($request);
-        $this->getHttpKernel()->terminate($request, $response);
+        $this->getHttpKernel()->terminate($this->app['request'], $response);
 
         return $response;
     }
