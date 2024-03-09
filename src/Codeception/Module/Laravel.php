@@ -24,6 +24,7 @@ use Codeception\Module\Laravel\MakesHttpRequests;
 use Codeception\Subscriber\ErrorHandler;
 use Codeception\TestInterface;
 use Codeception\Util\ReflectionHelper;
+use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application as ApplicationContract;
 use Illuminate\Database\Connection;
@@ -261,6 +262,8 @@ class Laravel extends Framework implements ActiveRecord, PartedModule
             unset($this->app[\Faker\Generator::class]);
             unset($this->app[\Illuminate\Database\Eloquent\Factory::class]);
         }
+
+        Artisan::forgetBootstrappers();
     }
 
     /**
