@@ -19,7 +19,7 @@
     ],
     "minimum-stability": "RC",
     "require": {
-        "php": "^8.0",
+        "php": "^8.2",
         "ext-json": "*",
         "codeception/lib-innerbrowser": "^3.1 | ^4.0",
         "codeception/codeception": "^5.0.8",
@@ -28,7 +28,7 @@
     "require-dev": {
         "codeception/module-asserts": "^3.0",
         "codeception/module-rest": "^3.3",
-        "laravel/framework": "^8.0"
+        "laravel/framework": "^10.0 | ^11.0"
     },
     "autoload": {
         "classmap": ["src/"]

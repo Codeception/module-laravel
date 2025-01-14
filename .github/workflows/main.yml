@@ -8,12 +8,12 @@ jobs:
 
     strategy:
       matrix:
-        php: [8.0, 8.1, 8.2]
-        laravel: [8]
+        php: [8.2, 8.3, 8.4]
+        laravel: [10, 11]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -23,17 +23,21 @@ jobs:
           extensions: ctype, iconv, intl, json, mbstring, pdo, pdo_sqlite
           coverage: none
 
-      - name: Checkout Laravel 8 Sample
-        if: matrix.laravel == 8
-        uses: actions/checkout@v3
+      - name: Set Laravel version reference
+        run: echo "LV_REF=${MATRIX_LARAVEL%.*}" >> $GITHUB_ENV
+        env:
+          MATRIX_LARAVEL: ${{ matrix.laravel }}
+
+      - name: Checkout Laravel ${{ env.LV_REF }} Sample
+        uses: actions/checkout@v4
         with:
           repository: codeception/laravel-module-tests
           path: framework-tests
-          ref: main
+          ref: ${{ env.LV_REF }}.x
 
       - name: Get composer cache directory
         id: composer-cache
-        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache composer dependencies
         uses: actions/cache@v3
@@ -42,20 +46,27 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
           restore-keys: ${{ runner.os }}-${{ matrix.php }}-composer-
 
+      - name: Install PHPUnit 11
+        run: composer require --dev --no-update "phpunit/phpunit=^11.0"
+
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: |
+          composer require symfony/console:^6.0 || ^7.0 --no-update
+          composer require codeception/module-asserts="3.*" --no-update
+          composer update --prefer-dist --no-progress --no-dev
 
       - name: Validate composer.json and composer.lock
-        run: composer validate
+        run: composer validate --strict
         working-directory: framework-tests
 
       - name: Install Laravel Sample
         run: |
           composer remove codeception/module-laravel --dev --no-update
-          composer install --no-progress
+          composer require phpunit/phpunit:^11.0 --dev --no-update
+          composer update --no-progress
         working-directory: framework-tests
 
-      - name: Prepare the test environment and run test suite
+      - name: Prepare the test environment
         run: |
           cp .env.testing .env
           php artisan config:cache

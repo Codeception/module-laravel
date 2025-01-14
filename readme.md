@@ -9,8 +9,8 @@ A Codeception module for Laravel framework.
 
 ## Requirements
 
-* `Laravel 8` or higher, as per the [Laravel supported versions](https://laravel.com/docs/master/releases#support-policy).
-* `PHP 7.4` or higher.
+* `Laravel 10` or higher, as per the [Laravel supported versions](https://laravel.com/docs/master/releases#support-policy).
+* `PHP 8.2` or higher.
 
 ## Installation
 
