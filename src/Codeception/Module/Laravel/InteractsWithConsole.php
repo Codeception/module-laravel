@@ -21,7 +21,7 @@ trait InteractsWithConsole
      *
      * @return string|void
      */
-    public function callArtisan(string $command, array $parameters = [], OutputInterface $output = null)
+    public function callArtisan(string $command, array $parameters = [], ?OutputInterface $output = null)
     {
         $console = $this->getConsoleKernel();
         if (!$output) {

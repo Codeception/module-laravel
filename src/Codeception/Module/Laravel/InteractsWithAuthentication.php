@@ -18,7 +18,7 @@ trait InteractsWithAuthentication
      * $I->amActingAs($user);
      * ```
      */
-    public function amActingAs(Authenticatable $user, string $guardName = null): void
+    public function amActingAs(Authenticatable $user, ?string $guardName = null): void
     {
         if (property_exists($user, 'wasRecentlyCreated') && $user->wasRecentlyCreated) {
             $user->wasRecentlyCreated = false;
@@ -47,7 +47,7 @@ trait InteractsWithAuthentication
      * @param Authenticatable|array $user
      * @param string|null $guardName
      */
-    public function amLoggedAs($user, string $guardName = null): void
+    public function amLoggedAs($user, ?string $guardName = null): void
     {
         if ($user instanceof Authenticatable) {
             $this->getAuth()->login($user);
@@ -69,7 +69,7 @@ trait InteractsWithAuthentication
      * $I->assertAuthenticatedAs($user);
      * ```
      */
-    public function assertAuthenticatedAs(Authenticatable $user, string $guardName = null): void
+    public function assertAuthenticatedAs(Authenticatable $user, ?string $guardName = null): void
     {
         $expected = $this->getAuth()->guard($guardName)->user();
 
@@ -97,7 +97,7 @@ trait InteractsWithAuthentication
      * ]);
      * ```
      */
-    public function assertCredentials(array $credentials, string $guardName = null): void
+    public function assertCredentials(array $credentials, ?string $guardName = null): void
     {
         $this->assertTrue(
             $this->hasCredentials($credentials, $guardName), 'The given credentials are invalid.'
@@ -115,7 +115,7 @@ trait InteractsWithAuthentication
      * ]);
      * ```
      */
-    public function assertInvalidCredentials(array $credentials, string $guardName = null): void
+    public function assertInvalidCredentials(array $credentials, ?string $guardName = null): void
     {
         $this->assertFalse(
             $this->hasCredentials($credentials, $guardName), 'The given credentials are valid.'
@@ -130,7 +130,7 @@ trait InteractsWithAuthentication
      * $I->dontSeeAuthentication();
      * ```
      */
-    public function dontSeeAuthentication(string $guardName = null): void
+    public function dontSeeAuthentication(?string $guardName = null): void
     {
         $this->assertFalse($this->isAuthenticated($guardName), 'The user is authenticated');
     }
@@ -156,7 +156,7 @@ trait InteractsWithAuthentication
      * $I->seeAuthentication();
      * ```
      */
-    public function seeAuthentication(string $guardName = null): void
+    public function seeAuthentication(?string $guardName = null): void
     {
         $this->assertTrue($this->isAuthenticated($guardName), 'The user is not authenticated');
     }
@@ -164,7 +164,7 @@ trait InteractsWithAuthentication
     /**
      * Return true if the credentials are valid, false otherwise.
      */
-    protected function hasCredentials(array $credentials, string $guardName = null): bool
+    protected function hasCredentials(array $credentials, ?string $guardName = null): bool
     {
         /** @var GuardHelpers $guard */
         $guard = $this->getAuth()->guard($guardName);

@@ -43,7 +43,7 @@ trait InteractsWithViews
      * $I->seeFormErrorMessage('username', 'Invalid Username');
      * ```
      */
-    public function seeFormErrorMessage(string $field, string $errorMessage = null): void
+    public function seeFormErrorMessage(string $field, ?string $errorMessage = null): void
     {
         $viewErrorBag = $this->getViewErrorBag();
 
