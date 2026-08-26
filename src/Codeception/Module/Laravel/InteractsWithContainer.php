@@ -84,7 +84,7 @@ trait InteractsWithContainer
      * ```
      *
      * @param string $abstract
-     * @param Closure|string|null $concrete
+     * @param \Closure|string|null $concrete
      * @param bool $shared
      */
     public function haveBinding(string $abstract, $concrete = null, bool $shared = false): void
@@ -108,7 +108,7 @@ trait InteractsWithContainer
      *
      * @param string $concrete
      * @param string $abstract
-     * @param Closure|string $implementation
+     * @param \Closure|string $implementation
      */
     public function haveContextualBinding(string $concrete, string $abstract, $implementation): void
     {
@@ -139,7 +139,7 @@ trait InteractsWithContainer
      * ```
      *
      * @param string $abstract
-     * @param Closure|string|null $concrete
+     * @param \Closure|string|null $concrete
      */
     public function haveSingleton(string $abstract, $concrete): void
     {
