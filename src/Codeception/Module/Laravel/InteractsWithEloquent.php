@@ -6,7 +6,6 @@ namespace Codeception\Module\Laravel;
 
 use Illuminate\Database\ConnectionResolverInterface as Db;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\Factory as EloquentFactory;
 use Illuminate\Database\Eloquent\FactoryBuilder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
@@ -82,7 +81,7 @@ trait InteractsWithEloquent
      *
      * @param string $table
      * @param array $attributes
-     * @return array|EloquentModel
+     * @return array|\Illuminate\Database\Eloquent\Model
      * @part orm
      */
     public function grabRecord($table, $attributes = [])
@@ -145,7 +144,7 @@ trait InteractsWithEloquent
      *
      * @see https://laravel.com/docs/7.x/database-testing#using-factories
      *
-     * @return EloquentModel|EloquentCollection
+     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Eloquent\Collection
      * @part orm
      */
     public function haveMultiple(string $model, int $times, array $attributes = [], string $name = 'default')
@@ -170,8 +169,8 @@ trait InteractsWithEloquent
      *
      * @param string $table
      * @param array $attributes
-     * @return EloquentModel|int
-     * @throws RuntimeException
+     * @return \Illuminate\Database\Eloquent\Model|int
+     * @throws \RuntimeException
      * @part orm
      */
     public function haveRecord($table, $attributes = [])
@@ -208,7 +207,7 @@ trait InteractsWithEloquent
      *
      * @see https://laravel.com/docs/7.x/database-testing#using-factories
      *
-     * @return EloquentCollection|EloquentModel
+     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Database\Eloquent\Model
      * @part orm
      */
     public function make(string $model, array $attributes = [], string $name = 'default')
@@ -232,7 +231,7 @@ trait InteractsWithEloquent
      *
      * @see https://laravel.com/docs/7.x/database-testing#using-factories
      *
-     * @return EloquentCollection|EloquentModel
+     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Database\Eloquent\Model
      * @part orm
      */
     public function makeMultiple(string $model, int $times, array $attributes = [], string $name = 'default')

@@ -44,7 +44,7 @@ trait InteractsWithAuthentication
      *
      * // can be verified with $I->seeAuthentication();
      * ```
-     * @param Authenticatable|array $user
+     * @param \Illuminate\Contracts\Auth\Authenticatable|array $user
      * @param string|null $guardName
      */
     public function amLoggedAs($user, ?string $guardName = null): void
