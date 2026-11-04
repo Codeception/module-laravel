@@ -22,6 +22,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\RegisterProviders;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Queue\Queue;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelBrowser as Client;
@@ -177,6 +178,10 @@ class Laravel extends Client
      */
     private function loadApplication(): AppContract
     {
+        // Booting the application appends callbacks that reference it to this static array,
+        // so it has to be cleared to let previous applications be garbage collected.
+        Queue::createPayloadUsing(null);
+
         /** @var AppContract $app */
         $app = require $this->module->config['bootstrap_file'];
         if ($this->module->config['environment_file'] !== '.env') {
